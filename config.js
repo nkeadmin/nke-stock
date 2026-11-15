@@ -3,8 +3,8 @@ window.NKE_CONFIG = {
   // Name shown at the top of the app.
   COMPANY_NAME: "NKE Stock",
 
-  // Link to the ENTRY SHEET tab of your Google Sheet, published as CSV.
-  // In Google Sheets: File > Share > Publish to web > choose the "ENTRY SHEET" tab and "Comma-separated values (.csv)" > Publish, then copy the link here.
-  // Leave it empty ("") until the sheet exists: the app then shows its built-in snapshot and can open an Excel file.
-  SHEET_CSV_URL: ""
+  // Where the app reads the stock from.
+  // "stock.dat" = the copy of your Zoho Sheet that the website refreshes every 15 minutes (see README.txt).
+  // Until that copy exists the app shows its built-in snapshot.
+  SHEET_CSV_URL: "stock.dat"
 };

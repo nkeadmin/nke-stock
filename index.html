@@ -173,7 +173,11 @@ var StockCore = (function () {
       var dayFirst = dateOrder === 'mdy' ? false : true;      // India: day first unless the data proves otherwise
       return dayFirst ? new Date(y, b - 1, a, 12) : new Date(y, a - 1, b, 12);
     }
-    var d = new Date(s); return isNaN(d) ? null : d;
+    if ((m = s.match(/^(\d{1,2})[\s\/.-]([A-Za-z]{3})[A-Za-z]*[\s\/.,-]+(\d{2,4})/))) {   // 14-Oct-2026, 14 Oct 26
+      var mi = 'JANFEBMARAPRMAYJUNJULAUGSEPOCTNOVDEC'.indexOf(m[2].toUpperCase());
+      if (mi >= 0) { var yy = +m[3]; if (yy < 100) yy += 2000; return new Date(yy, mi / 3, +m[1], 12); }
+    }
+    var d = new Date(s); return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
   }
   function compute(rows, startIndex) {
     dateOrder = detectDateOrder(rows, startIndex || 0, 2);
@@ -335,7 +339,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
   function sourceLine() {
     if (!STOCK) return 'No stock loaded';
     var s = 'Stock as of <b>' + esc(fmtDate(STOCK.asOf)) + '</b>';
-    if (SOURCE === 'sheet') s += ' · from the Google Sheet, ' + esc(fmtStamp(STOCK.fetchedAt));
+    if (SOURCE === 'sheet') s += ' · from the live sheet, updated ' + esc(fmtStamp(STOCK.fetchedAt));
     else if (SOURCE === 'cache') s += ' · last downloaded ' + esc(fmtStamp(STOCK.fetchedAt)) + ' (offline copy)';
     else if (SOURCE === 'file') s += ' · from file ' + esc(STOCK.sourceFile || '');
     else if (SOURCE === 'snapshot') s += ' · built-in snapshot, not live';
@@ -396,9 +400,9 @@ if (typeof module !== 'undefined') module.exports = StockCore;
   function renderSettings() {
     var url = lsGet('nke-sheet-url') || '';
     return '<section class="admin"><h2>Where the stock comes from</h2>' +
-      '<p>Normal use: the app downloads the <b>ENTRY SHEET</b> from your Google Sheet each time it opens. The link is set once in <code>config.js</code> on the website' + (CFG.SHEET_CSV_URL ? ' (a link is set there)' : ' (no link set there yet)') + '.</p>' +
+      '<p>Normal use: the app downloads the latest <b>ENTRY SHEET</b> each time it opens. The website copies it from Zoho Sheet every 15 minutes. The source is set in <code>config.js</code>' + (CFG.SHEET_CSV_URL ? ' (now: <code>' + esc(CFG.SHEET_CSV_URL) + '</code>)' : ' (nothing set yet)') + '.</p>' +
       '<label for="sheet-url">Override the link on this phone only (for testing)</label>' +
-      '<input id="sheet-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?gid=…&single=true&output=csv" value="' + esc(url) + '">' +
+      '<input id="sheet-url" type="url" placeholder="https://… (CSV or Excel download link)" value="' + esc(url) + '">' +
       '<div class="btns"><button type="button" class="btn primary" id="save-url">Save and load</button>' + (url ? '<button type="button" class="btn" id="clear-url">Use the website setting</button>' : '') + '</div>' +
       '<h2>Or open a file</h2><p>Opens the Stock Management Excel file (or a CSV of its Entry Sheet) on this phone only. Nothing is uploaded anywhere.</p>' +
       '<input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv">' +
@@ -437,15 +441,18 @@ if (typeof module !== 'undefined') module.exports = StockCore;
   }
   function loadSheet(manual) {
     var url = sheetUrl();
-    if (!url) { if (manual) { state.msg = 'No Google Sheet link is set.'; render(); } return; }
+    if (!url) { if (manual) { state.msg = 'No sheet link is set.'; render(); } return; }
+    var local = !/^https?:/i.test(url);
     state.loading = true; if (manual) state.msg = ''; render();
     var bust = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
     fetch(bust, { cache: 'no-store' }).then(function (r) {
-      if (!r.ok) throw new Error('the link answered ' + r.status + '. Check that the sheet is published to the web as CSV.');
-      return r.text();
-    }).then(function (text) {
-      if (/^\s*</.test(text)) throw new Error('the link returned a web page, not a CSV. Use File > Share > Publish to web and pick CSV.');
-      var wb = XLSX.read(text, { type: 'string' });
+      if (!r.ok) { var er = new Error(local && r.status === 404 ? 'the stock file is not on the website yet (the Zoho update has not run).' : 'the link answered ' + r.status + '. Check that the sheet is published with download allowed.'); er.missing = local && r.status === 404; throw er; }
+      return r.arrayBuffer();
+    }).then(function (buf) {
+      var bytes = new Uint8Array(buf);
+      var head = String.fromCharCode.apply(null, bytes.subarray(0, 200)).replace(/^﻿|^\xEF\xBB\xBF/, '');
+      if (/^\s*</.test(head)) throw new Error('the link returned a web page, not a CSV or Excel file. Publish the sheet with download allowed and copy the download link.');
+      var wb = XLSX.read(bytes, { type: 'array', cellDates: true });
       var data = StockCore.fromWorkbook(XLSX, wb);
       if (!data.stats.rows) throw new Error('the sheet has no entries (it needs MOVEMENT in its header row)');
       data.fetchedAt = new Date().toISOString();
@@ -456,7 +463,8 @@ if (typeof module !== 'undefined') module.exports = StockCore;
       state.loading = false;
       var cached = null; try { cached = JSON.parse(lsGet('nke-stock-cache') || 'null'); } catch (x) {}
       if (cached && SOURCE !== 'file') { STOCK = cached; SOURCE = 'cache'; }
-      state.msg = 'Could not download the sheet: ' + (e && e.message ? e.message : 'no connection') + (cached ? ' Showing the last downloaded copy.' : '');
+      if (e && e.missing && !manual && !cached) { render(); return; }
+      state.msg ='Could not download the sheet: ' + (e && e.message ? e.message : 'no connection') + (cached ? ' Showing the last downloaded copy.' : '');
       render();
     });
   }
