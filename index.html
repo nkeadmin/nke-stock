@@ -430,7 +430,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
     reader.onerror = function () { state.msg = 'Could not read the file.'; render(); };
     reader.onload = function () {
       try {
-        var wb = XLSX.read(reader.result, { type: 'array', cellDates: true });
+        var wb = XLSX.read(new Uint8Array(reader.result), readOpts(new Uint8Array(reader.result)));
         var data = StockCore.fromWorkbook(XLSX, wb);
         if (!data.stats.rows) throw new Error('no entries found (the file needs an ENTRY SHEET with MOVEMENT in its header row)');
         data.sourceFile = file.name; state.msg = ''; state.settings = false;
@@ -438,6 +438,11 @@ if (typeof module !== 'undefined') module.exports = StockCore;
       } catch (e) { state.msg = 'Could not read this file: ' + (e && e.message ? e.message : e); render(); }
     };
     reader.readAsArrayBuffer(file);
+  }
+  // Excel files carry real dates; a CSV is read as plain text so dd/mm/yyyy is not mistaken for a US date
+  function readOpts(bytes) {
+    var excel = (bytes[0] === 0x50 && bytes[1] === 0x4B) || (bytes[0] === 0xD0 && bytes[1] === 0xCF);
+    return excel ? { type: 'array', cellDates: true } : { type: 'array', raw: true };
   }
   function loadSheet(manual) {
     var url = sheetUrl();
@@ -452,7 +457,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
       var bytes = new Uint8Array(buf);
       var head = String.fromCharCode.apply(null, bytes.subarray(0, 200)).replace(/^﻿|^\xEF\xBB\xBF/, '');
       if (/^\s*</.test(head)) throw new Error('the link returned a web page, not a CSV or Excel file. Publish the sheet with download allowed and copy the download link.');
-      var wb = XLSX.read(bytes, { type: 'array', cellDates: true });
+      var wb = XLSX.read(bytes, readOpts(bytes));
       var data = StockCore.fromWorkbook(XLSX, wb);
       if (!data.stats.rows) throw new Error('the sheet has no entries (it needs MOVEMENT in its header row)');
       data.fetchedAt = new Date().toISOString();
