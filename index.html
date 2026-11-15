@@ -400,7 +400,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
   function renderSettings() {
     var url = lsGet('nke-sheet-url') || '';
     return '<section class="admin"><h2>Where the stock comes from</h2>' +
-      '<p>Normal use: the app downloads the latest <b>ENTRY SHEET</b> each time it opens. The website copies it from Zoho Sheet every 15 minutes. The source is set in <code>config.js</code>' + (CFG.SHEET_CSV_URL ? ' (now: <code>' + esc(CFG.SHEET_CSV_URL) + '</code>)' : ' (nothing set yet)') + '.</p>' +
+      '<p>Normal use: the app downloads the latest <b>ENTRY SHEET</b> each time it opens. The website copies it from Zoho Sheet every morning at 9 AM. The source is set in <code>config.js</code>' + (CFG.SHEET_CSV_URL ? ' (now: <code>' + esc(CFG.SHEET_CSV_URL) + '</code>)' : ' (nothing set yet)') + '.</p>' +
       '<label for="sheet-url">Override the link on this phone only (for testing)</label>' +
       '<input id="sheet-url" type="url" placeholder="https://… (CSV or Excel download link)" value="' + esc(url) + '">' +
       '<div class="btns"><button type="button" class="btn primary" id="save-url">Save and load</button>' + (url ? '<button type="button" class="btn" id="clear-url">Use the website setting</button>' : '') + '</div>' +
