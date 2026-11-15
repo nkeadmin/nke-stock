@@ -2,7 +2,7 @@ name: Update stock from Zoho Sheet
 # Every 15 minutes, copies the published Zoho Sheet into stock.dat on this website.
 on:
   schedule:
-    - cron: '*/15 * * * *'
+        - cron: '30 3 * * *'
   workflow_dispatch:
 permissions:
   contents: write
