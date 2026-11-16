@@ -1,0 +1,34 @@
+name: Update stock from Zoho Sheet
+# Every morning at 9:00 AM IST, copies the published Zoho Sheet into stock.dat on this website.
+on:
+  schedule:
+    - cron: '30 3 * * *'    # every day at 03:30 UTC = 9:00 AM IST
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: update-stock
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the Zoho Sheet
+        env:
+          ZOHO_URL: ${{ secrets.ZOHO_SHEET_URL }}
+        run: |
+          if [ -z "$ZOHO_URL" ]; then echo "::error::Add the secret ZOHO_SHEET_URL (Settings > Secrets and variables > Actions)."; exit 1; fi
+          # keep only the first https link, in case extra text, quotes or embed code were pasted with it
+          ZOHO_URL=$(printf '%s' "$ZOHO_URL" | tr -d '\r\n' | grep -oE 'https?://[^"'"'"'<>]+' | head -n1 | sed -e 's/[[:space:]]*$//' -e 's/&amp;/\&/g' -e 's/ /%20/g')
+          if [ -z "$ZOHO_URL" ]; then echo "::error::The secret ZOHO_SHEET_URL does not contain a link starting with https://"; exit 1; fi
+          echo "Downloading from $(printf '%s' "$ZOHO_URL" | cut -d/ -f3)"
+          curl -gfsSL --retry 3 --max-time 120 -o new.dat "$ZOHO_URL"
+          if head -c 300 new.dat | grep -qiE '<html|<!doctype'; then echo "::error::Zoho returned a web page, not a file. Turn on Allow download in the publish settings and use the download link."; exit 1; fi
+          if [ "$(stat -c%s new.dat)" -lt 500 ]; then echo "::error::The downloaded file is almost empty."; exit 1; fi
+          if ! grep -qai 'MOVEMENT' new.dat && ! head -c 2 new.dat | grep -q 'PK'; then echo "::error::No MOVEMENT header found. Publish the ENTRY SHEET tab."; exit 1; fi
+          if [ -f stock.dat ] && cmp -s new.dat stock.dat; then echo "No change in stock."; rm new.dat; exit 0; fi
+          mv new.dat stock.dat
+          git config user.name "stock-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stock.dat
+          git commit -m "Stock update $(TZ=Asia/Kolkata date '+%d-%m-%Y %H:%M')"
+          git push
