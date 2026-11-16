@@ -3,7 +3,7 @@ NKE STOCK - how to put it online and keep it updated
 
 WHAT THIS IS
   A small website that shows current stock on any phone. It needs no server and no account:
-  it reads the ENTRY SHEET that the website copies from your Zoho Sheet every 15 minutes.
+  it reads the ENTRY SHEET that the website copies from your Zoho Sheet every morning at 9 AM IST.
 
 FILES
   index.html          the app
@@ -33,9 +33,9 @@ STEP 2 - CONNECT ZOHO SHEET (stock updates by itself)
      5. Add file > Create new file. Name it exactly:  .github/workflows/update-stock.yml
         Paste everything from update-stock.yml.txt (in this folder). Commit changes.
      6. Actions tab > "Update stock from Zoho Sheet" > Run workflow. After a green tick, a file
-        stock.dat appears in the repository. From then on it repeats every 15 minutes on its own
+        stock.dat appears in the repository. From then on it repeats every morning at 9 AM IST on its own
         (GitHub sometimes runs it a few minutes late).
-  Your staff then see the new stock within about 15-20 minutes of an entry in Zoho. Nobody uploads anything.
+  Your staff then see the new stock the morning's stock after 9 AM (or right away after a manual Run workflow). Nobody uploads anything.
   If a run shows a red cross, open it: the message says what is wrong (link, download not allowed, wrong tab).
   To test a link on one phone: open the app, tap the gear icon, paste it, Save.
 

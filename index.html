@@ -4,103 +4,162 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NKE Stock</title>
-<meta name="theme-color" content="#0F6B5B" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121816" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#E9EDF1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E151C" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NKE Stock">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
+<link rel="preload" href="fonts/barlowc-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}
-
-/* Layout: one column, sticky tab strip, big quantity figure above a scannable card list. */
+/* NKE Stock v2. Steel-and-motor-blue palette, Barlow (body) + Barlow Condensed (figures and item names).
+   Layout: app bar, sticky search + filter bar, one list, bottom tab bar for the four stock types.
+   The one loud element: godown "bin labels" and stamped quantity figures. Everything else stays quiet. */
+@font-face{font-family:Barlow;font-weight:400;font-display:swap;src:url(fonts/barlow-400.woff2) format("woff2")}
+@font-face{font-family:Barlow;font-weight:500;font-display:swap;src:url(fonts/barlow-500.woff2) format("woff2")}
+@font-face{font-family:Barlow;font-weight:600;font-display:swap;src:url(fonts/barlow-600.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(fonts/barlowc-600.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(fonts/barlowc-700.woff2) format("woff2")}
 :root{
-  --bg:#F2F4F3; --panel:#FFFFFF; --ink:#15201E; --muted:#5B6865; --line:#D9DEDC; --chip:#E6EBE9;
-  --accent:#0F6B5B; --accent-ink:#FFFFFF; --accent-soft:#DCEDE7; --neg:#A33A2A; --neg-soft:#F8E4E0;
-  --sans:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --disp:'Space Grotesk','Inter',system-ui,sans-serif;
+  --bg:#E9EDF1; --panel:#FFFFFF; --ink:#13202C; --muted:#56687A; --line:#D3DBE3; --line2:#BFCAD5;
+  --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:#DCE6F3; --neg:#B3261E; --neg-soft:#F7E1DE;
+  --ok:#2E7D4F; --warn:#9A6200; --scrim:rgba(19,32,44,.45);
+  --sans:Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --cond:"Barlow Condensed",Barlow,system-ui,sans-serif;
+  --nav-h:62px; color-scheme:light;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#121816; --panel:#1B2320; --ink:#E8ECEA; --muted:#9AA6A2; --line:#2C3734; --chip:#263029; --accent:#4FB89F; --accent-ink:#0E1A17; --accent-soft:#1E3B34; --neg:#E58A78; --neg-soft:#3B2420; color-scheme:dark } }
-:root[data-theme="dark"]{ --bg:#121816; --panel:#1B2320; --ink:#E8ECEA; --muted:#9AA6A2; --line:#2C3734; --chip:#263029; --accent:#4FB89F; --accent-ink:#0E1A17; --accent-soft:#1E3B34; --neg:#E58A78; --neg-soft:#3B2420; color-scheme:dark }
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-#app{max-width:720px;margin:0 auto;padding-block:0 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E151C; --panel:#16202A; --ink:#E6ECF2; --muted:#93A3B3; --line:#243140; --line2:#33465A;
+  --accent:#8DB4EA; --accent-ink:#0E151C; --accent-soft:#1C2E44; --neg:#F08A80; --neg-soft:#3A1F1E;
+  --ok:#6CC08E; --warn:#E0B25A; --scrim:rgba(0,0,0,.6); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0E151C; --panel:#16202A; --ink:#E6ECF2; --muted:#93A3B3; --line:#243140; --line2:#33465A;
+  --accent:#8DB4EA; --accent-ink:#0E151C; --accent-soft:#1C2E44; --neg:#F08A80; --neg-soft:#3A1F1E;
+  --ok:#6CC08E; --warn:#E0B25A; --scrim:rgba(0,0,0,.6); color-scheme:dark }
 *{box-sizing:border-box}
-button{font:inherit;color:inherit;cursor:pointer}
-input[type=search]{font:inherit}
-.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 0 10px}
-.name{font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:-.01em;line-height:1.1}
-.asof{color:var(--muted);font-size:13px;margin-top:3px}
-.asof b{color:var(--ink);font-weight:600}
-.btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 12px;font-weight:600;font-size:13px;white-space:nowrap}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn:disabled{opacity:.5;cursor:default}
-.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:4px;background:var(--bg);padding:6px 0 10px;overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:1 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 10px;font-weight:600;font-size:13px;display:flex;gap:6px;align-items:center;justify-content:center}
-.tab .n{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
-.tab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.tab.on .n{color:var(--accent-ink);opacity:.85}
-.search{position:relative;margin-bottom:10px}
-.search input{width:100%;padding:12px 40px 12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font-size:16px}
-.search input:focus{outline:2px solid var(--accent);outline-offset:-1px}
-.search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:var(--chip);border-radius:50%;width:28px;height:28px;font-size:12px}
-.chiprow{display:flex;align-items:center;gap:8px;margin:0 0 8px;min-width:0}
-.chiprow .lbl{flex:0 0 76px;font-size:12px;color:var(--muted);font-weight:600}
-.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none;min-width:0;flex:1}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px;font-size:13px;font-variant-numeric:tabular-nums}
-.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:600}
-.chip.clearf{background:var(--chip);border-color:transparent;color:var(--muted)}
-.summary{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px 16px;margin:12px 0}
-.summary.neg{border-left-color:var(--neg)}
-.summary .big{font-family:var(--disp);font-size:44px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;min-width:0}
-.summary.neg .big{color:var(--neg)}
-.summary .what{color:var(--muted);font-size:13px;min-width:0}
-.gsum{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
-.gchip{display:inline-flex;align-items:center;gap:5px;background:var(--chip);border-radius:6px;padding:2px 7px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink)}
-.gchip em{font-style:normal;color:var(--muted);font-size:11px}
-.gchip.neg{background:var(--neg-soft);color:var(--neg)}
-.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
-.card .row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.card .t{min-width:0}
-.card .title{font-weight:600;font-size:15px;overflow-wrap:anywhere}
-.card .sub{color:var(--muted);font-size:13px}
-.card .qty{font-family:var(--disp);font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--accent)}
-.card.neg .qty{color:var(--neg)}
-.gods{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px;align-items:center}
-.brands{font-size:12px;color:var(--muted);margin-left:auto}
-.empty{text-align:center;color:var(--muted);padding:28px 10px}
-.empty p{margin:6px 0;max-width:40ch;margin-inline:auto}
-.link{border:0;background:none;color:var(--accent);text-decoration:underline;padding:0;font-weight:600}
-.more{color:var(--muted);text-align:center;font-size:13px}
-.foot{margin-top:22px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:10px}
-.tgl{display:flex;align-items:center;gap:8px;color:var(--ink)}
-.help summary{cursor:pointer;color:var(--accent);font-weight:600}
-.help p{margin:6px 0 0}
-.note{margin:0;font-size:12px}
-.admin{background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:14px 16px;margin:4px 0 12px}
-.admin h2{font-family:var(--disp);font-size:17px;margin:0 0 6px}
-.admin p{margin:6px 0;font-size:14px}
-.admin input[type=file]{display:block;margin:10px 0;max-width:100%}
-.preview{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
-.pv{background:var(--accent-soft);border-radius:8px;padding:8px;text-align:center;font-size:12px;color:var(--muted)}
-.pv b{display:block;font-family:var(--disp);font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
-.small{font-size:13px;color:var(--muted)}
-.warn{color:var(--neg);font-weight:600}
-.err{color:var(--neg);font-weight:600}
-@media (max-width:420px){ .preview{grid-template-columns:repeat(2,1fr)} .chiprow .lbl{flex-basis:66px} }
-@media (prefers-reduced-motion: no-preference){ .chip,.tab{transition:background .12s,border-color .12s} }
-button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.4 var(--sans);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body.locked{overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+input{font:inherit;color:inherit}
+[hidden]{display:none!important}
+#app{max-width:640px;margin:0 auto;min-height:100vh;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 24px)}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
-.actions{display:flex;gap:6px;align-items:flex-start}
-.msg{background:var(--neg-soft);color:var(--neg);border-radius:8px;padding:8px 12px;font-size:13px;margin:0 0 10px}
-.admin label{display:block;font-size:13px;color:var(--muted);margin-top:8px}
-.admin input[type=url]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:14px;margin:4px 0 8px}
-.admin code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:13px}
-.btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.admin h2+h2,.admin .btns+h2{margin-top:14px}
+/* app bar */
+.bar{display:flex;align-items:center;gap:10px;padding-top:calc(env(safe-area-inset-top,0px) + 10px);padding-bottom:6px}
+.name{font:700 24px/1 var(--cond);letter-spacing:.01em;margin-right:auto}
+.status{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:18px;background:var(--panel);font-size:14px;font-weight:500;white-space:nowrap}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.status.live i{background:var(--ok)} .status.cache i{background:var(--warn)} .status.file i{background:var(--accent)}
+.status.loading i{animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.25}}
+.iconbtn{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--muted)}
+.iconbtn svg{width:22px;height:22px}
+.iconbtn:active{background:var(--accent-soft)}
+.msg{margin:6px 0 4px;padding:10px 12px;border-radius:10px;background:var(--neg-soft);color:var(--neg);font-size:14px}
+
+/* sticky search + filters */
+.dock{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-top:6px;padding-bottom:8px}
+body::before{content:"";position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:25}
+.search{position:relative}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--muted);pointer-events:none}
+.search input{width:100%;height:48px;padding:0 44px 0 42px;border:1px solid var(--line2);border-radius:12px;background:var(--panel);font-size:17px;-webkit-appearance:none;appearance:none}
+.search input::placeholder{color:var(--muted)}
+.search input::-webkit-search-cancel-button{display:none}
+.search input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:18px;display:grid;place-items:center;color:var(--muted)}
+.filters{display:flex;gap:8px;overflow-x:auto;margin:8px -16px 0;padding:0 16px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fbtn{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:18px;background:var(--panel);font-size:15px;font-weight:500;white-space:nowrap}
+.fbtn svg{width:14px;height:14px;color:var(--muted)}
+.fbtn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fbtn.on svg{color:var(--accent-ink)}
+.fbtn.reset{border-color:transparent;background:transparent;color:var(--accent);text-decoration:underline;text-underline-offset:3px;padding:0 6px}
+
+/* result line + godown totals */
+.result{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:6px;padding-bottom:10px}
+.result .count{font-size:15px;color:var(--muted)}
+.result .count b{font:700 22px/1 var(--cond);color:var(--ink);margin-right:3px}
+.result .count.neg b{color:var(--neg)}
+.linkbtn{color:var(--accent);font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:4px;min-height:36px}
+.linkbtn svg{width:14px;height:14px;transition:transform .15s}
+.linkbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.totals{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+
+/* bin label: the godown tag */
+.bin{display:inline-flex;align-items:stretch;border:1.5px solid var(--line2);border-radius:6px;overflow:hidden;font-size:15px;line-height:1;background:var(--panel)}
+.bin .bl{padding:5px 7px;background:var(--bg);color:var(--muted);font-weight:600;border-right:1.5px solid var(--line2);white-space:nowrap}
+.bin .bq{padding:5px 8px;font:700 17px/1 var(--cond);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+.bin.neg{border-color:var(--neg)} .bin.neg .bl{border-color:var(--neg)} .bin.neg .bq{color:var(--neg)}
+
+/* list */
+.list{list-style:none;margin:0;padding:0;background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+@media (min-width:600px){ .list{border:1px solid var(--line);border-radius:12px;overflow:hidden} }
+.item{padding:12px 16px 13px;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.ihead{display:flex;align-items:flex-start;gap:12px}
+.ileft{flex:1;min-width:0}
+.iname{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;row-gap:2px}
+.iname .big{font:600 24px/1.1 var(--cond);letter-spacing:.005em;overflow-wrap:anywhere}
+.iname .mid{font:600 20px/1.1 var(--cond);color:var(--muted)}
+.iqty{flex:none;text-align:right;font:700 34px/.95 var(--cond);font-variant-numeric:tabular-nums;color:var(--ink)}
+.iqty small{display:block;font:500 12px/1.4 var(--sans);color:var(--muted)}
+.item.neg .iqty{color:var(--neg)}
+.item.zero .iqty{color:var(--muted)}
+.specs{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.spec{font-size:14px;font-weight:500;padding:2px 8px;border-radius:5px;background:var(--bg);color:var(--ink)}
+.spec.type{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.where{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.brands{margin-top:6px;font-size:13px;color:var(--muted)}
+.more{text-align:center;color:var(--muted);font-size:14px;padding:14px 16px}
+.empty{text-align:center;color:var(--muted);padding:40px 24px}
+.empty h2{font:600 22px/1.2 var(--cond);color:var(--ink);margin:0 0 6px}
+.empty p{margin:0 auto 14px;max-width:34ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 18px;border-radius:10px;border:1px solid var(--line2);background:var(--panel);font-weight:600;font-size:16px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.5}
+
+/* bottom tab bar */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);height:var(--nav-h)}
+.nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--muted);position:relative;font-size:14px;font-weight:600;line-height:1.15;padding:0 2px;text-align:center}
+.nav button .n{font:600 13px/1 var(--cond);font-variant-numeric:tabular-nums;opacity:.85}
+.nav button.on{color:var(--accent)}
+.nav button.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+
+/* bottom sheet */
+.scrim{position:fixed;inset:0;z-index:40;background:var(--scrim)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:640px;margin:0 auto;background:var(--panel);border-radius:18px 18px 0 0;max-height:82vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet.enter{animation:up .2s ease-out}
+.scrim.enter{animation:fade .2s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+@keyframes fade{from{opacity:0}}
+.shead{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px}
+.shead h2{font:600 24px/1.1 var(--cond);margin:0}
+.sbody{overflow-y:auto;padding:4px 16px 16px;-webkit-overflow-scrolling:touch}
+.sfoot{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line)}
+.sfoot .btn{flex:1}
+.vals{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.val{min-height:48px;padding:6px 8px;border:1.5px solid var(--line2);border-radius:10px;font:600 19px/1.1 var(--cond);background:var(--panel);overflow-wrap:anywhere}
+.val.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.vals.wide{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.menu p{margin:0 0 10px;color:var(--muted);font-size:15px}
+.menu .when{font:600 22px/1.2 var(--cond);color:var(--ink);margin:0 0 4px}
+.menu .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-top:1px solid var(--line);font-size:16px}
+.menu .row:first-of-type{border-top:0}
+.menu input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
+.menu details{border-top:1px solid var(--line);padding:12px 0 0;margin-top:4px}
+.menu summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:36px;display:flex;align-items:center}
+.menu details p{margin-top:8px}
+.menu label.l{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+.menu input[type=url]{width:100%;height:44px;padding:0 10px;border:1px solid var(--line2);border-radius:8px;background:var(--bg);font-size:15px}
+.menu input[type=file]{display:block;margin:8px 0;max-width:100%;font-size:15px}
+.menu .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.menu code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:4px}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){ .sheet.enter,.scrim.enter{animation:none} .status.loading i{animation:none} .linkbtn svg{transition:none} }
 
 </style>
 </head>
@@ -179,9 +238,26 @@ var StockCore = (function () {
     }
     var d = new Date(s); return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
   }
-  function compute(rows, startIndex) {
-    dateOrder = detectDateOrder(rows, startIndex || 0, 2);
-    var C = { MOV: 1, DATE: 2, BRAND: 4, LOC: 5, TYPE: 6, HP: 8, POLE: 9, MTG: 10, FRAME: 11, EFF: 12, SPECIAL: 13, QM: 14, MODEL: 16, RATIO: 17, GFRAME: 18, GMTG: 19, QG: 21, QGM: 24 };
+  /* Column positions come from the header row, so the sheet works with or without the COMPANY column.
+     Falls back to the original layout when the header cannot be read. */
+  var DEFAULT_COLS = { MOV: 1, DATE: 2, BRAND: 4, LOC: 5, TYPE: 6, HP: 8, POLE: 9, MTG: 10, FRAME: 11, EFF: 12, SPECIAL: 13, QM: 14, MODEL: 16, RATIO: 17, GFRAME: 18, GMTG: 19, QG: 21, QGM: 24 };
+  function columnsFrom(header) {
+    var pos = {};
+    (header || []).forEach(function (h, i) { var k = part(h); if (!k) return; (pos[k] = pos[k] || []).push(i); });
+    function one(name, nth) { var a = pos[name]; return a && a.length > (nth || 0) ? a[nth || 0] : undefined; }
+    function pick() { for (var i = 0; i < arguments.length; i++) { var v = arguments[i]; if (v !== undefined) return v; } return undefined; }
+    var C = {
+      MOV: one('MOVEMENT'), DATE: one('DATE'), BRAND: one('BRAND'), LOC: one('LOCATION'), TYPE: one('TYPE'), HP: one('HP'), POLE: one('POLE'),
+      MTG: one('MOUNTING'), FRAME: one('FRAME'), EFF: one('EFFICIENCY'), SPECIAL: one('SPECIAL'), MODEL: one('MODEL'), RATIO: one('RATIO'),
+      GFRAME: pick(one('GBFRAME'), one('FRAME', 1)), GMTG: one('MTG'),
+      QM: pick(one('MOTORQTYINPUT'), one('QTYINPUT', 0)), QG: pick(one('GEARBOXQTYINPUT'), one('QTYINPUT', 1)), QGM: pick(one('GEARMOTORQTYINPUT'), one('QTYINPUT', 2))
+    };
+    for (var k in C) if (C[k] === undefined) return DEFAULT_COLS;
+    return C;
+  }
+  function compute(rows, startIndex, cols) {
+    dateOrder = detectDateOrder(rows, startIndex || 0, (cols || DEFAULT_COLS).DATE);
+    var C = cols || DEFAULT_COLS;
     var godowns = GODOWN_ORDER.slice(), gseen = {};
     GODOWN_ORDER.forEach(function (g) { gseen[part(g)] = true; });
     var groups = { motor: {}, special: {}, gearbox: {}, gearmotor: {} };
@@ -273,11 +349,11 @@ var StockCore = (function () {
     var ws = wb.Sheets[name];
     var rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: true });
     // find the header row (contains MOVEMENT) so a CSV export of just the entry sheet also works
-    var start = 2;
+    var start = 2, header = null;
     for (var i = 0; i < Math.min(rows.length, 10); i++) {
-      if ((rows[i] || []).some(function (c) { return part(c) === 'MOVEMENT'; })) { start = i + 1; break; }
+      if ((rows[i] || []).some(function (c) { return part(c) === 'MOVEMENT'; })) { start = i + 1; header = rows[i]; break; }
     }
-    var data = compute(rows, start);
+    var data = compute(rows, start, columnsFrom(header));
     data.sheet = name;
     return data;
   }
@@ -285,30 +361,44 @@ var StockCore = (function () {
 })();
 if (typeof module !== 'undefined') module.exports = StockCore;
 
-/* NKE Stock – standalone edition. Reads the ENTRY SHEET from a published Google Sheet (CSV link in config.js),
-   or from an Excel/CSV file opened on the phone, and shows current stock. No server, no account. */
+/* NKE Stock v2 – phone stock viewer. Reads stock.dat (copied from Zoho Sheet by the website), an Excel/CSV opened
+   on the phone, or the built-in snapshot. Layout: app bar, sticky search + filter buttons, one list, bottom tabs. */
 (function () {
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var app = $('#app');
   var CFG = window.NKE_CONFIG || {};
   var SNAPSHOT = null;
   try { SNAPSHOT = JSON.parse(($('#stock-data') || {}).textContent || 'null'); } catch (e) { SNAPSHOT = null; }
-  var STOCK = null, SOURCE = '';       // SOURCE: 'sheet' | 'cache' | 'file' | 'snapshot'
+  var STOCK = null, SOURCE = '';       // 'sheet' | 'cache' | 'file' | 'snapshot'
+  var ICON = {
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+    x: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>'
+  };
+  function fmt(n) { return Number(n).toLocaleString('en-IN'); }
+  function gname(g) { return String(g).replace(/\s*-\s*/g, '-'); }
+  function frame(v) { return v ? 'Frame ' + v : ''; }
   var TABS = [
-    { id: 'motor', label: 'Motor', fields: ['hp', 'pole', 'mtg', 'eff'], chips: ['hp', 'pole', 'mtg', 'eff'], title: function (it) { return it.hp + ' HP · ' + it.pole + ' pole'; }, sub: function (it) { return [it.mtg, it.eff].filter(Boolean).join(' · '); } },
-    { id: 'special', label: 'Special motor', fields: ['special', 'frame', 'hp', 'pole', 'mtg', 'eff'], chips: ['special', 'hp', 'pole', 'frame', 'mtg'], title: function (it) { return it.special + ' · ' + it.hp + ' HP · ' + it.pole + ' pole'; }, sub: function (it) { return [it.frame ? 'Frame ' + it.frame : '', it.mtg, it.eff].filter(Boolean).join(' · '); } },
-    { id: 'gearbox', label: 'Gearbox', fields: ['model', 'ratio', 'frame', 'mtg'], chips: ['frame', 'mtg'], title: function (it) { return it.model + (it.ratio ? ' · ratio ' + it.ratio : ''); }, sub: function (it) { return [it.frame ? 'Frame ' + it.frame : '', it.mtg].filter(Boolean).join(' · '); } },
-    { id: 'gearmotor', label: 'Gear motor', fields: ['make', 'model', 'ratio', 'frame', 'hp', 'pole'], chips: ['make', 'hp', 'pole'], title: function (it) { return (it.model || '(no model)') + (it.ratio ? ' · ratio ' + it.ratio : ''); }, sub: function (it) { return [it.make, it.hp ? it.hp + ' HP' : '', it.pole ? it.pole + ' pole' : '', it.frame ? 'Frame ' + it.frame : ''].filter(Boolean).join(' · '); } }
+    { id: 'motor', label: 'Motor', fields: ['hp', 'pole', 'mtg', 'eff'], filters: ['hp', 'pole', 'mtg', 'eff'], hint: 'Search, e.g. 5 hp 4 pole b5',
+      big: function (it) { return it.hp + ' HP'; }, mid: function (it) { return it.pole ? it.pole + ' pole' : ''; }, specs: function (it) { return [it.mtg, it.eff]; } },
+    { id: 'special', label: 'Special', fields: ['special', 'frame', 'hp', 'pole', 'mtg', 'eff'], filters: ['special', 'hp', 'pole', 'frame', 'mtg', 'eff'], hint: 'Search, e.g. brake 2 hp',
+      big: function (it) { return it.hp + ' HP'; }, mid: function (it) { return it.pole ? it.pole + ' pole' : ''; }, type: function (it) { return it.special; }, specs: function (it) { return [frame(it.frame), it.mtg, it.eff]; } },
+    { id: 'gearbox', label: 'Gearbox', fields: ['model', 'ratio', 'frame', 'mtg'], filters: ['model', 'ratio', 'frame', 'mtg'], hint: 'Search model, ratio or frame',
+      big: function (it) { return it.model || 'No model'; }, mid: function (it) { return it.ratio ? 'Ratio ' + it.ratio : ''; }, specs: function (it) { return [frame(it.frame), it.mtg]; } },
+    { id: 'gearmotor', label: 'Gear motor', fields: ['make', 'model', 'ratio', 'frame', 'hp', 'pole'], filters: ['make', 'model', 'hp', 'pole', 'ratio'], hint: 'Search model, make or HP',
+      big: function (it) { return it.model || 'No model'; }, mid: function (it) { return it.ratio ? 'Ratio ' + it.ratio : ''; }, specs: function (it) { return [it.make, it.hp ? it.hp + ' HP' : '', it.pole ? it.pole + ' pole' : '', frame(it.frame)]; } }
   ];
   var LABEL = { hp: 'HP', pole: 'Pole', mtg: 'Mounting', eff: 'Efficiency', special: 'Type', frame: 'Frame', make: 'Make', model: 'Model', ratio: 'Ratio' };
-  var state = { tab: 'motor', q: '', sel: {}, showZero: false, settings: false, loading: false, msg: '' };
+  var state = { tab: 'motor', q: '', sel: {}, showZero: false, sheet: null, sheetNew: false, godowns: false, loading: false, msg: '' };
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-  try { var saved = JSON.parse(lsGet('nke-stock-ui') || '{}'); if (saved.tab) state.tab = saved.tab; if (saved.showZero) state.showZero = true; } catch (e) {}
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  try { var saved = JSON.parse(lsGet('nke-stock-ui') || '{}'); if (saved.tab && TABS.some(function (t) { return t.id === saved.tab; })) state.tab = saved.tab; if (saved.showZero) state.showZero = true; } catch (e) {}
   function remember() { lsSet('nke-stock-ui', JSON.stringify({ tab: state.tab, showZero: state.showZero })); }
   function sheetUrl() { return (lsGet('nke-sheet-url') || CFG.SHEET_CSV_URL || '').trim(); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function fmtDate(iso) { if (!iso) return '—'; var d = new Date(iso); if (isNaN(d)) return iso; return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function fmtDate(iso, withYear) { if (!iso) return '—'; var d = new Date(iso); if (isNaN(d)) return iso; return d.toLocaleDateString('en-IN', withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' }); }
   function fmtStamp(iso) { if (!iso) return ''; var d = new Date(iso); if (isNaN(d)) return ''; return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); }
   function tabDef() { return TABS.filter(function (t) { return t.id === state.tab; })[0]; }
   function P(x) { return StockCore.part(x); }
@@ -328,152 +418,204 @@ if (typeof module !== 'undefined') module.exports = StockCore;
       if (state.sel[f].indexOf(P(it[f])) < 0) return false;
     }
     if (state.q) {
-      var hay = def.fields.map(function (f) { return P(it[f]); }).join(' ');
-      var words = state.q.toUpperCase().split(/\s+/).filter(Boolean);
-      var ok = words.every(function (w) { return hay.indexOf(P(w)) >= 0; }) || hay.replace(/ /g, '').indexOf(P(state.q)) >= 0;
-      if (!ok) return false;
+      // "5 hp", "4 pole"/"4p", "frame 90", "ratio 40" are read as exact field values; other words match anywhere
+      var q = ' ' + state.q.toUpperCase() + ' ', want = {};
+      q = q.replace(/(\d+(?:\.\d+)?)\s*HP\b/g, function (m, n) { want.hp = P(n); return ' '; })
+           .replace(/(\d+)\s*(?:POLES?|P)\b/g, function (m, n) { want.pole = P(n); return ' '; })
+           .replace(/\bFRAME\s*(\S+)/g, function (m, n) { want.frame = P(n); return ' '; })
+           .replace(/\bRATIO\s*(\S+)/g, function (m, n) { want.ratio = P(n); return ' '; });
+      for (var k in want) { if (def.fields.indexOf(k) >= 0 && P(it[k]) !== want[k]) return false; }
+      var tokens = def.fields.map(function (f) { return P(it[f]); });
+      var words = q.split(/\s+/).filter(Boolean).map(P);
+      var ok = words.every(function (w) { return tokens.some(function (t) { return t === w || (w.length > 1 && t.indexOf(w) >= 0); }); });
+      if (!ok && tokens.join('').indexOf(P(state.q)) < 0) return false;
     }
     return true;
   }
-  function hasFilter() { if (state.q) return true; for (var f in state.sel) if (state.sel[f] && state.sel[f].length) return true; return false; }
-  function sourceLine() {
-    if (!STOCK) return 'No stock loaded';
-    var s = 'Stock as of <b>' + esc(fmtDate(STOCK.asOf)) + '</b>';
-    if (SOURCE === 'sheet') s += ' · from the live sheet, updated ' + esc(fmtStamp(STOCK.fetchedAt));
-    else if (SOURCE === 'cache') s += ' · last downloaded ' + esc(fmtStamp(STOCK.fetchedAt)) + ' (offline copy)';
-    else if (SOURCE === 'file') s += ' · from file ' + esc(STOCK.sourceFile || '');
-    else if (SOURCE === 'snapshot') s += ' · built-in snapshot, not live';
-    return s;
+  function selCount() { var n = 0; for (var f in state.sel) if (state.sel[f] && state.sel[f].length) n++; return n; }
+  function valuesFor(def, items, f) {
+    var vals = {};
+    items.forEach(function (it) { if (matches(it, def, f)) { var k = P(it[f]); if (k !== '' && !(k in vals)) vals[k] = it[f]; } });
+    (state.sel[f] || []).forEach(function (k) { if (!(k in vals)) vals[k] = k; });
+    return sortVals(Object.keys(vals).map(function (k) { return vals[k]; })).map(function (v) { return { k: P(v), v: v }; });
+  }
+  function status() {
+    if (state.loading) return { cls: 'loading', text: 'Updating…' };
+    if (!STOCK) return { cls: '', text: 'No stock' };
+    var d = fmtDate(STOCK.asOf);
+    if (SOURCE === 'sheet') return { cls: 'live', text: 'Up to ' + d };
+    if (SOURCE === 'cache') return { cls: 'cache', text: 'Offline · ' + d };
+    if (SOURCE === 'file') return { cls: 'file', text: 'File · ' + d };
+    return { cls: '', text: 'Old copy · ' + d };
+  }
+  function itemHtml(def, it) {
+    var specs = (def.specs(it) || []).filter(Boolean);
+    var type = def.type ? def.type(it) : '';
+    var bins = STOCK.godowns.map(function (g, i) {
+      var q = it.g[i]; if (!q) return '';
+      return '<span class="bin' + (q < 0 ? ' neg' : '') + '"><span class="bl">' + esc(gname(g)) + '</span><span class="bq">' + fmt(q) + '</span></span>';
+    }).join('');
+    var brands = Object.keys(it.b).sort().map(function (b) { return esc(b) + ' ' + fmt(it.b[b]); }).join(', ');
+    return '<li class="item' + (it.q < 0 ? ' neg' : it.q === 0 ? ' zero' : '') + '">' +
+      '<div class="ihead"><div class="ileft"><div class="iname"><span class="big">' + esc(def.big(it)) + '</span>' + (def.mid(it) ? '<span class="mid">' + esc(def.mid(it)) + '</span>' : '') + '</div>' +
+      (type || specs.length ? '<div class="specs">' + (type ? '<span class="spec type">' + esc(type) + '</span>' : '') + specs.map(function (s) { return '<span class="spec">' + esc(s) + '</span>'; }).join('') + '</div>' : '') + '</div>' +
+      '<div class="iqty">' + fmt(it.q) + '<small>pcs</small></div></div>' +
+      (bins ? '<div class="where" aria-label="By godown">' + bins + '</div>' : '') +
+      (brands ? '<div class="brands">' + brands + '</div>' : '') + '</li>';
   }
   function render() {
     var def = tabDef();
     var items = STOCK ? (STOCK[def.id] || []) : [];
     var shown = items.filter(function (it) { return matches(it, def); });
     var total = shown.reduce(function (s, it) { return s + it.q; }, 0);
-    var h = '';
-    h += '<header class="top"><div class="brand"><div class="name">' + esc(CFG.COMPANY_NAME || 'NKE Stock') + '</div><div class="asof">' + sourceLine() + '</div></div>' +
-      '<div class="actions">' + (sheetUrl() ? '<button class="btn ghost" id="refresh-btn" type="button" ' + (state.loading ? 'disabled' : '') + '>' + (state.loading ? 'Loading…' : 'Refresh') + '</button>' : '') +
-      '<button class="btn ghost" id="settings-btn" type="button" aria-label="Settings">' + (state.settings ? 'Close' : '⚙') + '</button></div></header>';
-    if (state.msg) h += '<p class="msg">' + esc(state.msg) + '</p>';
-    if (state.settings) h += renderSettings();
-    h += '<nav class="tabs" aria-label="Stock type">' + TABS.map(function (t) {
-      var n = STOCK ? (STOCK[t.id] || []).reduce(function (s, it) { return s + it.q; }, 0) : 0;
-      return '<button type="button" class="tab' + (t.id === state.tab ? ' on' : '') + '" data-tab="' + t.id + '">' + t.label + '<span class="n">' + n + '</span></button>';
-    }).join('') + '</nav>';
-    h += '<div class="search"><input id="q" type="search" placeholder="' + (def.id === 'motor' || def.id === 'special' ? 'Search e.g. 5 hp 4 pole b5' : 'Search model, ratio, frame') + '" value="' + esc(state.q) + '" autocomplete="off">' +
-      (state.q ? '<button type="button" class="clear" id="clear-q" aria-label="Clear search">✕</button>' : '') + '</div>';
-    def.chips.forEach(function (f) {
-      var vals = {};
-      items.forEach(function (it) { if (matches(it, def, f)) { var k = P(it[f]); if (k !== '' && !vals[k]) vals[k] = it[f]; } });
-      var cur = state.sel[f] || [];
-      var keys = sortVals(Object.keys(vals).map(function (k) { return vals[k]; })).map(P);
-      keys = keys.filter(function (k) { return cur.indexOf(k) >= 0; }).concat(keys.filter(function (k) { return cur.indexOf(k) < 0; }));
-      if (!keys.length && !cur.length) return;
-      h += '<div class="chiprow"><span class="lbl">' + LABEL[f] + '</span><div class="chips">' +
-        (cur.length ? '<button type="button" class="chip clearf" data-clear="' + f + '">All</button>' : '') +
-        keys.map(function (k) { return '<button type="button" class="chip' + (cur.indexOf(k) >= 0 ? ' on' : '') + '" data-f="' + f + '" data-v="' + esc(k) + '">' + esc(vals[k] == null ? k : vals[k]) + '</button>'; }).join('') +
-        '</div></div>';
-    });
-    h += '<section class="summary' + (total < 0 ? ' neg' : '') + '"><div class="big">' + total + '</div><div class="what">' +
-      (shown.length === 1 ? '1 item' : shown.length + ' items') + (hasFilter() ? ' match' : ' in stock') +
-      (STOCK && STOCK.godowns ? '<div class="gsum">' + STOCK.godowns.map(function (g, i) {
+    var st = status();
+    var h = '<header class="bar pad"><div class="name">' + esc(CFG.COMPANY_NAME || 'NKE Stock') + '</div>' +
+      '<button type="button" class="status ' + st.cls + '" id="status-btn" aria-label="Stock details and settings"><i></i>' + esc(st.text) + '</button>' +
+      (sheetUrl() ? '<button type="button" class="iconbtn" id="refresh-btn" aria-label="Download latest stock"' + (state.loading ? ' disabled' : '') + '>' + ICON.refresh + '</button>' : '') + '</header>';
+    if (state.msg) h += '<div class="pad"><p class="msg" role="alert">' + esc(state.msg) + '</p></div>';
+    h += '<div class="dock pad"><div class="search">' + ICON.search + '<input id="q" type="search" inputmode="search" enterkeyhint="search" placeholder="' + esc(def.hint) + '" value="' + esc(state.q) + '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search">' +
+      (state.q ? '<button type="button" class="clear" id="clear-q" aria-label="Clear search">' + ICON.x + '</button>' : '') + '</div>' +
+      '<div class="filters" role="toolbar" aria-label="Filters">' + def.filters.map(function (f) {
+        var cur = state.sel[f] || [];
+        var txt = LABEL[f] + (cur.length === 1 ? ': ' + esc(valuesFor(def, items, f).filter(function (o) { return o.k === cur[0]; }).map(function (o) { return o.v; })[0] || cur[0]) : cur.length > 1 ? ': ' + cur.length : '');
+        return '<button type="button" class="fbtn' + (cur.length ? ' on' : '') + '" data-open="' + f + '">' + txt + ICON.down + '</button>';
+      }).join('') + (selCount() || state.q ? '<button type="button" class="fbtn reset" id="reset">Clear all</button>' : '') + '</div></div>';
+    if (STOCK && shown.length) {
+      h += '<div class="result pad"><div class="count' + (total < 0 ? ' neg' : '') + '"><b>' + fmt(total) + '</b> pcs in ' + fmt(shown.length) + (shown.length === 1 ? ' item' : ' items') + '</div>' +
+        '<button type="button" class="linkbtn" id="gd-btn" aria-expanded="' + state.godowns + '">By godown' + ICON.down + '</button></div>';
+      if (state.godowns) h += '<div class="totals pad">' + STOCK.godowns.map(function (g, i) {
         var s = shown.reduce(function (a, it) { return a + (it.g[i] || 0); }, 0);
-        return s ? '<span class="gchip"><em>' + esc(g) + '</em>' + s + '</span>' : '';
-      }).join('') + '</div>' : '') + '</div></section>';
-    if (!STOCK) {
-      h += '<div class="empty"><p>No stock loaded yet.</p><p>Open ⚙ and paste the Google Sheet link, or open the Excel file.</p></div>';
-    } else if (!shown.length) {
-      h += '<div class="empty"><p>Nothing matches.</p><p>' + (state.showZero ? 'Try fewer filters.' : 'Items with zero stock are hidden. <button type="button" class="link" id="show-zero">Show them</button> or try fewer filters.') + '</p></div>';
-    } else {
-      h += '<ul class="list">' + shown.slice(0, 400).map(function (it) {
-        return '<li class="card' + (it.q < 0 ? ' neg' : '') + '"><div class="row"><div class="t"><div class="title">' + esc(def.title(it)) + '</div><div class="sub">' + esc(def.sub(it)) + '</div></div><div class="qty">' + it.q + '</div></div>' +
-          '<div class="gods">' + STOCK.godowns.map(function (g, i) { return it.g[i] ? '<span class="gchip' + (it.g[i] < 0 ? ' neg' : '') + '"><em>' + esc(g) + '</em>' + it.g[i] + '</span>' : ''; }).join('') +
-          (Object.keys(it.b).length ? '<span class="brands">' + Object.keys(it.b).sort().map(function (b) { return esc(b) + ' ' + it.b[b]; }).join(', ') + '</span>' : '') + '</div></li>';
-      }).join('') + '</ul>' + (shown.length > 400 ? '<p class="more">Showing the first 400. Narrow the search to see the rest.</p>' : '');
+        return s ? '<span class="bin' + (s < 0 ? ' neg' : '') + '"><span class="bl">' + esc(gname(g)) + '</span><span class="bq">' + fmt(s) + '</span></span>' : '';
+      }).join('') + '</div>';
     }
-    h += '<footer class="foot"><label class="tgl"><input type="checkbox" id="zero" ' + (state.showZero ? 'checked' : '') + '> Show items with zero stock</label>' +
-      '<details class="help"><summary>Add to your phone\'s home screen</summary><p>Android (Chrome): tap the ⋮ menu, then <b>Add to Home screen</b> (or <b>Install app</b>). iPhone (Safari): tap Share, then <b>Add to Home Screen</b>.</p></details>' +
-      '<p class="note">Figures are worked out from the Entry Sheet. Godown BTB is not counted. Read-only.</p></footer>';
+    if (!STOCK) {
+      h += '<div class="empty"><h2>No stock loaded</h2><p>Tap below to download the latest stock.</p><button type="button" class="btn primary" id="empty-refresh">Download stock</button></div>';
+    } else if (!shown.length) {
+      h += '<div class="empty"><h2>Nothing found</h2><p>' + (state.showZero ? 'No item matches these filters.' : 'No item in stock matches. Items with zero stock are hidden.') + '</p>' +
+        '<button type="button" class="btn" id="empty-reset">Clear filters</button>' + (state.showZero ? '' : ' <button type="button" class="btn" id="show-zero">Show zero stock</button>') + '</div>';
+    } else {
+      h += '<ul class="list">' + shown.slice(0, 300).map(function (it) { return itemHtml(def, it); }).join('') + '</ul>' +
+        (shown.length > 300 ? '<p class="more">Showing 300 of ' + fmt(shown.length) + '. Search or filter to narrow down.</p>' : '');
+    }
+    h += '<nav class="nav" aria-label="Stock type"><div class="in">' + TABS.map(function (t) {
+      var n = STOCK ? (STOCK[t.id] || []).reduce(function (s, it) { return s + it.q; }, 0) : 0;
+      return '<button type="button" class="' + (t.id === state.tab ? 'on' : '') + '" data-tab="' + t.id + '"' + (t.id === state.tab ? ' aria-current="page"' : '') + '>' + t.label + '<span class="n">' + fmt(n) + '</span></button>';
+    }).join('') + '</div></nav>';
+    if (state.sheet) h += renderSheet(def, items, shown);
+    document.body.classList.toggle('locked', !!state.sheet);
     app.innerHTML = h;
+    state.sheetNew = false;
     bind();
   }
-  function renderSettings() {
-    var url = lsGet('nke-sheet-url') || '';
-    return '<section class="admin"><h2>Where the stock comes from</h2>' +
-      '<p>Normal use: the app downloads the latest <b>ENTRY SHEET</b> each time it opens. The website copies it from Zoho Sheet every morning at 9 AM. The source is set in <code>config.js</code>' + (CFG.SHEET_CSV_URL ? ' (now: <code>' + esc(CFG.SHEET_CSV_URL) + '</code>)' : ' (nothing set yet)') + '.</p>' +
-      '<label for="sheet-url">Override the link on this phone only (for testing)</label>' +
-      '<input id="sheet-url" type="url" placeholder="https://… (CSV or Excel download link)" value="' + esc(url) + '">' +
-      '<div class="btns"><button type="button" class="btn primary" id="save-url">Save and load</button>' + (url ? '<button type="button" class="btn" id="clear-url">Use the website setting</button>' : '') + '</div>' +
-      '<h2>Or open a file</h2><p>Opens the Stock Management Excel file (or a CSV of its Entry Sheet) on this phone only. Nothing is uploaded anywhere.</p>' +
-      '<input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv">' +
-      (STOCK && STOCK.stats ? '<p class="small">Loaded: ' + STOCK.stats.rows + ' entries, ' + (STOCK.stats.skippedNoLocation + STOCK.stats.skippedNoQty) + ' skipped (no location or quantity), ' + STOCK.stats.btb + ' at BTB (not counted).</p>' : '') +
-      '</section>';
+  function renderSheet(def, items, shown) {
+    var anim = state.sheetNew ? ' enter' : '';
+    var h = '<div class="scrim' + anim + '" id="scrim"></div><section class="sheet' + anim + '" role="dialog" aria-modal="true" aria-labelledby="sheet-title">';
+    if (state.sheet === 'menu') {
+      var url = lsGet('nke-sheet-url') || '';
+      var where = SOURCE === 'sheet' ? 'Downloaded ' + fmtStamp(STOCK.fetchedAt) + '. The website copies the stock from Zoho Sheet every morning at 9 AM.'
+        : SOURCE === 'cache' ? 'This is the copy saved on this phone on ' + fmtStamp(STOCK.fetchedAt) + '. The latest stock could not be downloaded.'
+        : SOURCE === 'file' ? 'From the file ' + (STOCK.sourceFile || '') + ' opened on this phone.'
+        : 'This is the copy built into the app, not the live stock.';
+      h += '<div class="shead"><h2 id="sheet-title">Stock</h2><button type="button" class="iconbtn" id="close" aria-label="Close">' + ICON.x + '</button></div><div class="sbody menu">' +
+        (STOCK ? '<p class="when">Entries up to ' + esc(fmtDate(STOCK.asOf, true)) + '</p>' : '') + '<p>' + esc(STOCK ? where : 'No stock loaded.') + '</p>' +
+        (sheetUrl() ? '<div class="btns"><button type="button" class="btn primary" id="menu-refresh"' + (state.loading ? ' disabled' : '') + '>' + (state.loading ? 'Downloading…' : 'Download latest stock') + '</button></div>' : '') +
+        '<label class="row"><span>Show items with zero stock</span><input type="checkbox" id="zero"' + (state.showZero ? ' checked' : '') + '></label>' +
+        '<details><summary>Add this app to your home screen</summary><p>Android (Chrome): tap ⋮, then <b>Add to Home screen</b> or <b>Install app</b>.<br>iPhone (Safari): tap Share, then <b>Add to Home Screen</b>.</p></details>' +
+        '<details><summary>Advanced</summary>' +
+        '<p>Stock is counted from the Entry Sheet. Godown BTB is not counted.' + (STOCK && STOCK.stats ? ' ' + fmt(STOCK.stats.rows) + ' entries read, ' + (STOCK.stats.skippedNoLocation + STOCK.stats.skippedNoQty) + ' skipped for missing location or quantity.' : '') + '</p>' +
+        '<label class="l" for="file">Open a Stock Management Excel file on this phone</label><input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv">' +
+        '<label class="l" for="sheet-url">Use a different stock link on this phone</label><input id="sheet-url" type="url" placeholder="https://…" value="' + esc(url) + '">' +
+        '<div class="btns"><button type="button" class="btn" id="save-url">Save link</button>' + (url ? '<button type="button" class="btn" id="clear-url">Use the normal link</button>' : '') + '</div></details></div>';
+    } else {
+      var f = state.sheet, vals = valuesFor(def, items, f), cur = state.sel[f] || [];
+      var wide = vals.some(function (o) { return String(o.v).length > 7; });
+      h += '<div class="shead"><h2 id="sheet-title">' + LABEL[f] + '</h2><button type="button" class="iconbtn" id="close" aria-label="Close">' + ICON.x + '</button></div>' +
+        '<div class="sbody"><div class="vals' + (wide ? ' wide' : '') + '">' + vals.map(function (o) {
+          return '<button type="button" class="val' + (cur.indexOf(o.k) >= 0 ? ' on' : '') + '" data-v="' + esc(o.k) + '" aria-pressed="' + (cur.indexOf(o.k) >= 0) + '">' + esc(o.v) + '</button>';
+        }).join('') + '</div></div>' +
+        '<div class="sfoot"><button type="button" class="btn" id="sheet-clear"' + (cur.length ? '' : ' disabled') + '>Clear</button><button type="button" class="btn primary" id="close2">Show ' + fmt(shown.length) + (shown.length === 1 ? ' item' : ' items') + '</button></div>';
+    }
+    return h + '</section>';
   }
+  function openSheet(s) { state.sheet = s; state.sheetNew = true; render(); var b = $('.sheet .val.on') || $('.sheet button'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} }
+  function closeSheet() { var f = state.sheet; state.sheet = null; render(); var b = f && f !== 'menu' ? $('.fbtn[data-open="' + f + '"]') : $('#status-btn'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} }
+  function on(id, fn) { var el = $('#' + id); if (el) el.onclick = fn; }
   function bind() {
-    app.querySelectorAll('.tab').forEach(function (b) { b.onclick = function () { state.tab = b.dataset.tab; state.sel = {}; state.q = ''; remember(); render(); }; });
-    var q = $('#q'); if (q) q.oninput = function () { state.q = q.value; var pos = q.selectionStart; render(); var nq = $('#q'); nq.focus(); try { nq.setSelectionRange(pos, pos); } catch (e) {} };
-    var cq = $('#clear-q'); if (cq) cq.onclick = function () { state.q = ''; render(); };
-    app.querySelectorAll('.chip[data-f]').forEach(function (b) { b.onclick = function () { var f = b.dataset.f, v = b.dataset.v; var cur = state.sel[f] || []; var i = cur.indexOf(v); if (i >= 0) cur.splice(i, 1); else cur.push(v); state.sel[f] = cur; render(); }; });
-    app.querySelectorAll('.chip[data-clear]').forEach(function (b) { b.onclick = function () { state.sel[b.dataset.clear] = []; render(); }; });
+    app.querySelectorAll('.nav button').forEach(function (b) { b.onclick = function () { if (state.tab !== b.dataset.tab) { state.tab = b.dataset.tab; state.sel = {}; state.q = ''; remember(); render(); } window.scrollTo(0, 0); }; });
+    var q = $('#q'); if (q) q.oninput = function () { state.q = q.value; var pos = q.selectionStart; var y = window.scrollY; render(); var nq = $('#q'); nq.focus({ preventScroll: true }); try { nq.setSelectionRange(pos, pos); } catch (e) {} window.scrollTo(0, Math.min(y, document.documentElement.scrollHeight)); };
+    if (q) q.onkeydown = function (e) { if (e.key === 'Enter') q.blur(); };
+    on('clear-q', function () { state.q = ''; render(); var nq = $('#q'); if (nq) nq.focus(); });
+    app.querySelectorAll('.fbtn[data-open]').forEach(function (b) { b.onclick = function () { openSheet(b.dataset.open); }; });
+    on('reset', function () { state.sel = {}; state.q = ''; render(); });
+    on('empty-reset', function () { state.sel = {}; state.q = ''; render(); });
+    on('gd-btn', function () { state.godowns = !state.godowns; render(); });
+    on('status-btn', function () { openSheet('menu'); });
+    on('refresh-btn', function () { loadSheet(true); });
+    on('empty-refresh', function () { loadSheet(true); });
+    on('menu-refresh', function () { loadSheet(true); });
+    on('show-zero', function () { state.showZero = true; remember(); render(); });
+    on('scrim', closeSheet); on('close', closeSheet); on('close2', closeSheet);
+    on('sheet-clear', function () { state.sel[state.sheet] = []; render(); });
+    app.querySelectorAll('.sheet .val').forEach(function (b) { b.onclick = function () {
+      var f = state.sheet, v = b.dataset.v, cur = (state.sel[f] || []).slice(), i = cur.indexOf(v);
+      if (i >= 0) cur.splice(i, 1); else cur.push(v); state.sel[f] = cur;
+      var sb = $('.sheet .sbody'), top = sb ? sb.scrollTop : 0; render(); var nb = $('.sheet .sbody'); if (nb) nb.scrollTop = top;
+    }; });
     var z = $('#zero'); if (z) z.onchange = function () { state.showZero = z.checked; remember(); render(); };
-    var sz = $('#show-zero'); if (sz) sz.onclick = function () { state.showZero = true; remember(); render(); };
-    var sb = $('#settings-btn'); if (sb) sb.onclick = function () { state.settings = !state.settings; state.msg = ''; render(); };
-    var rb = $('#refresh-btn'); if (rb) rb.onclick = function () { loadSheet(true); };
-    var su = $('#save-url'); if (su) su.onclick = function () { var v = $('#sheet-url').value.trim(); if (v) lsSet('nke-sheet-url', v); else { try { localStorage.removeItem('nke-sheet-url'); } catch (e) {} } loadSheet(true); };
-    var cu = $('#clear-url'); if (cu) cu.onclick = function () { try { localStorage.removeItem('nke-sheet-url'); } catch (e) {} loadSheet(true); };
+    on('save-url', function () { var v = $('#sheet-url').value.trim(); if (v) lsSet('nke-sheet-url', v); else lsDel('nke-sheet-url'); state.sheet = null; loadSheet(true); });
+    on('clear-url', function () { lsDel('nke-sheet-url'); state.sheet = null; loadSheet(true); });
     var fi = $('#file'); if (fi) fi.onchange = function () { if (fi.files && fi.files[0]) readFile(fi.files[0]); };
   }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && state.sheet) closeSheet(); });
   function adopt(data, source) { STOCK = data; SOURCE = source; state.loading = false; render(); }
-  function readFile(file) {
-    state.msg = 'Reading ' + file.name + '…'; render();
-    var reader = new FileReader();
-    reader.onerror = function () { state.msg = 'Could not read the file.'; render(); };
-    reader.onload = function () {
-      try {
-        var wb = XLSX.read(new Uint8Array(reader.result), readOpts(new Uint8Array(reader.result)));
-        var data = StockCore.fromWorkbook(XLSX, wb);
-        if (!data.stats.rows) throw new Error('no entries found (the file needs an ENTRY SHEET with MOVEMENT in its header row)');
-        data.sourceFile = file.name; state.msg = ''; state.settings = false;
-        adopt(data, 'file');
-      } catch (e) { state.msg = 'Could not read this file: ' + (e && e.message ? e.message : e); render(); }
-    };
-    reader.readAsArrayBuffer(file);
-  }
   // Excel files carry real dates; a CSV is read as plain text so dd/mm/yyyy is not mistaken for a US date
   function readOpts(bytes) {
     var excel = (bytes[0] === 0x50 && bytes[1] === 0x4B) || (bytes[0] === 0xD0 && bytes[1] === 0xCF);
     return excel ? { type: 'array', cellDates: true } : { type: 'array', raw: true };
   }
+  function readFile(file) {
+    state.msg = ''; state.loading = true; render();
+    var reader = new FileReader();
+    reader.onerror = function () { state.loading = false; state.msg = 'Could not read the file.'; render(); };
+    reader.onload = function () {
+      try {
+        var bytes = new Uint8Array(reader.result);
+        var data = StockCore.fromWorkbook(XLSX, XLSX.read(bytes, readOpts(bytes)));
+        if (!data.stats.rows) throw new Error('no entries found. The file needs an ENTRY SHEET with MOVEMENT in its header row.');
+        data.sourceFile = file.name; state.sheet = null;
+        adopt(data, 'file');
+      } catch (e) { state.loading = false; state.msg = 'Could not read this file: ' + (e && e.message ? e.message : e); render(); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
   function loadSheet(manual) {
     var url = sheetUrl();
-    if (!url) { if (manual) { state.msg = 'No sheet link is set.'; render(); } return; }
+    if (!url) { if (manual) { state.msg = 'No stock link is set.'; render(); } return; }
     var local = !/^https?:/i.test(url);
     state.loading = true; if (manual) state.msg = ''; render();
     var bust = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
     fetch(bust, { cache: 'no-store' }).then(function (r) {
-      if (!r.ok) { var er = new Error(local && r.status === 404 ? 'the stock file is not on the website yet (the Zoho update has not run).' : 'the link answered ' + r.status + '. Check that the sheet is published with download allowed.'); er.missing = local && r.status === 404; throw er; }
+      if (!r.ok) { var er = new Error(local && r.status === 404 ? 'the stock file is not on the website yet.' : 'the link answered ' + r.status + '.'); er.missing = local && r.status === 404; throw er; }
       return r.arrayBuffer();
     }).then(function (buf) {
       var bytes = new Uint8Array(buf);
       var head = String.fromCharCode.apply(null, bytes.subarray(0, 200)).replace(/^﻿|^\xEF\xBB\xBF/, '');
-      if (/^\s*</.test(head)) throw new Error('the link returned a web page, not a CSV or Excel file. Publish the sheet with download allowed and copy the download link.');
-      var wb = XLSX.read(bytes, readOpts(bytes));
-      var data = StockCore.fromWorkbook(XLSX, wb);
-      if (!data.stats.rows) throw new Error('the sheet has no entries (it needs MOVEMENT in its header row)');
+      if (/^\s*</.test(head)) throw new Error('the link returned a web page, not a CSV or Excel file.');
+      var data = StockCore.fromWorkbook(XLSX, XLSX.read(bytes, readOpts(bytes)));
+      if (!data.stats.rows) throw new Error('the sheet has no entries (it needs MOVEMENT in its header row).');
       data.fetchedAt = new Date().toISOString();
       lsSet('nke-stock-cache', JSON.stringify(data));
-      state.settings = false; state.msg = '';
+      state.msg = '';
       adopt(data, 'sheet');
     }).catch(function (e) {
       state.loading = false;
       var cached = null; try { cached = JSON.parse(lsGet('nke-stock-cache') || 'null'); } catch (x) {}
       if (cached && SOURCE !== 'file') { STOCK = cached; SOURCE = 'cache'; }
       if (e && e.missing && !manual && !cached) { render(); return; }
-      state.msg ='Could not download the sheet: ' + (e && e.message ? e.message : 'no connection') + (cached ? ' Showing the last downloaded copy.' : '');
+      state.msg = (e instanceof TypeError ? 'No internet connection.' : 'Could not download the stock: ' + (e && e.message ? e.message : '')) + (cached ? ' Showing the copy saved on this phone.' : '');
       render();
     });
   }
-  // start: cached copy or built-in snapshot first, then the live sheet
   var cached = null; try { cached = JSON.parse(lsGet('nke-stock-cache') || 'null'); } catch (e) {}
   if (cached && sheetUrl()) { STOCK = cached; SOURCE = 'cache'; }
   else if (SNAPSHOT) { STOCK = SNAPSHOT; SOURCE = 'snapshot'; }
