@@ -1,0 +1,43 @@
+name: Update prices from price lists
+# Runs when a file in the pricelists folder is added or replaced, and on demand from the Actions tab.
+on:
+  push:
+    paths:
+      - 'pricelists/**'
+  workflow_dispatch:
+    inputs:
+      accept:
+        description: 'Accept new lists even if prices changed a lot (only after checking them)'
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency: update-prices
+jobs:
+  prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PDF and Excel readers
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          pip install --quiet openpyxl
+      - name: Read the price lists
+        id: build
+        continue-on-error: true
+        run: python3 tools/build_prices.py pricelists prices.json ${{ inputs.accept && '--accept' || '' }}
+      - name: Save prices.json
+        run: |
+          if git diff --quiet -- prices.json 2>/dev/null && git ls-files --error-unmatch prices.json >/dev/null 2>&1; then echo "No price changes."; else
+            git config user.name "price-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add prices.json
+            git commit -m "Prices updated $(TZ=Asia/Kolkata date '+%d-%m-%Y %H:%M')"
+            git push
+          fi
+      - name: Report problems
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "::error::One or more price lists were not accepted. Open the step 'Read the price lists' above to see which and why. Those makes still show their old prices."
+          exit 1
