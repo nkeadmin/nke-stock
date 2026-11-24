@@ -48,8 +48,8 @@ for p in range(1, N + 1):
     heads = []        # (col, eff) from headers like "4 Pole, 1500 rpm, IE3"
     lines = txt.split('\n')
     for i, line in enumerate(lines):
-        hh = [(m.start(), m.group(1)) for m in re.finditer(r'Pole,\s*\d+\s*rpm,\s*(IE\d)', line)]
-        if hh: heads = hh
+        hh = [(m.start(), m.group(1) or '') for m in re.finditer(r'\d+\s*Pole,\s*\d+\s*rpm(?:,\s*(IE\d))?', line)]
+        if hh: heads = hh                      # a heading without IE (10 and 12 pole) resets the class
         prev = 0
         for m in ROW.finditer(line):
             seg = line[prev:m.start()]; segstart = prev; prev = m.end()
@@ -66,6 +66,7 @@ for p in range(1, N + 1):
             if 'Torque' in base and len(nums) >= 3: kw, hp, tq = nums[-3], nums[-2], nums[-1]; nums = [kw, hp, tq]
             else: kw, hp = nums[-2], nums[-1]
             two = '/' in kw
+            if two or 'two speed' in base.lower(): continue      # dual speed motors are left out of the app
             row = {'kw': kw if two else float(kw), 'hp': hp if two else float(hp), 'pole': pole_of(m.group('pole')),
                    'frame': m.group('frame').replace(' FLP', ''), 'cat': m.group('des'), 'price': money(m.group('price')), 'page': p}
             if len(nums) >= 3 and 'Torque' in base: row['torque_kgm'] = float(nums[2])
@@ -78,7 +79,7 @@ for p in range(1, N + 1):
                 pass
             em = re.search(r'IE\d', name)
             low = name.lower()
-            kind = 'FLP' if flp else 'CRANE' if 'crane' in low else 'FIRE' if 'fire' in low else 'SPECIAL' if any(k in low for k in ('two speed', 'torque', 'cooling tower')) else 'STD'
+            kind = 'FLP' if flp else 'CRANE' if 'crane' in low else 'FIRE' if 'fire' in low else 'COOLING' if 'cooling tower' in low else 'SPECIAL' if any(k in low for k in ('two speed', 'torque')) else 'STD'
             secs.add(name + (' (B5)' if mount == 'B5' else ''), em.group(0) if em else '', kind, mount, row)
 
 save(OUT, 'Hindustan', listno, date, 'GST extra', os.path.basename(PDF),

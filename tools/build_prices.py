@@ -27,7 +27,7 @@ def first_text(path):
 def which_make(path, text):
     t = text.upper(); n = os.path.basename(path).upper()
     if path.lower().endswith(('.xlsx', '.xlsm')):
-        return 'bonfiglioli' if ('FOOT B3' in t and 'POWER' in t) else None      # gearbox lists are not motor price lists
+        return 'bonfiglioli' if 'TAB.2_BN_BE_BX' in t.replace(' ', '') else None   # BVN motor list; gearbox and other lists are not read
     if 'HAVELLS' in t: return 'havells'
     if 'HINDMOTORS' in t or 'HINDUSTAN' in t: return 'hindustan'
     if 'FRSM' in t.replace(' ', '') or ('ABB' in t and 'IEC LV MOTORS' in t): return 'abb'
@@ -36,7 +36,21 @@ def which_make(path, text):
     return None
 
 MAKE_NAME = {'havells': 'Havells', 'hindustan': 'Hindustan', 'abb': 'ABB', 'cg': 'CG Power', 'marathon': 'Marathon', 'bonfiglioli': 'Bonfiglioli'}
+MIN_PRICES = {'bonfiglioli': 20}     # the BVN sheet is short: 4 pole only
 ORDER = ['abb', 'cg', 'havells', 'hindustan', 'marathon', 'bonfiglioli']
+
+# Ranges left out of the app: one phrase per line in pricelists/leave-out.txt (a section whose name contains it is dropped)
+LEAVE = []
+lo = os.path.join(FOLDER, 'leave-out.txt')
+if os.path.exists(lo):
+    for line in open(lo, encoding='utf-8', errors='replace'):
+        line = line.split('#')[0].strip()
+        if not line: continue
+        parts = re.split(r'\s+except\s+', line, maxsplit=1, flags=re.I)      # "Brake except Bonfiglioli"
+        phrase, keep = parts[0], parts[1] if len(parts) > 1 else ''
+        LEAVE.append((re.compile(r'(?<![A-Za-z])' + re.escape(phrase.strip()) + r'(?![A-Za-z])', re.I), [k.strip().lower() for k in keep.split(',') if k.strip()]))
+def left_out(sec, make):
+    return any(p.search(sec['name']) and make.lower() not in keep for p, keep in LEAVE)
 
 old = {}
 if os.path.exists(OUT):
@@ -84,16 +98,20 @@ for key in ORDER:
     if best is None:
         if label in old: makes.append(old[label])
         continue
+    best['all_count'] = sum(len(s['rows']) for s in best['sections'])
+    dropped = [s['name'] for s in best['sections'] if left_out(s, label)]
+    best['sections'] = [s for s in best['sections'] if not left_out(s, label)]
+    if dropped: notes.append(f'{label}: left out ' + ', '.join(dropped))
     rows = [(s, r) for s in best['sections'] for r in s['rows']]
     problem = None
-    if len(rows) < 50: problem = f'only {len(rows)} prices were found'
+    if best['all_count'] < MIN_PRICES.get(key, 50): problem = f'only {best["all_count"]} prices were found'
     elif any(not (r['price'] > 0) for s, r in rows): problem = 'some prices are zero or missing'
     elif sum(1 for s, r in rows if odd_rating(r)) > 0.02 * len(rows): problem = 'many kW and HP values do not fit together; the layout of the file may have changed'
     elif label in old and not FORCE:
         prev = old[label]
         prev_rows = {key_of(r, s): r['price'] for s in prev['sections'] for r in s['rows']}
-        n_old = len(prev_rows)
-        if len(rows) < 0.7 * n_old: problem = f'{len(rows)} prices found, the old list had {n_old}; the layout of the new file may have changed'
+        n_old = prev.get('all_count', len(prev_rows))
+        if best['all_count'] < 0.7 * n_old: problem = f'{best["all_count"]} prices found, the old list had {n_old}; the layout of the new file may have changed'
         else:
             ratios = [r['price'] / prev_rows[key_of(r, s)] for s, r in rows if key_of(r, s) in prev_rows]
             if len(ratios) >= 20:
@@ -107,6 +125,7 @@ for key in ORDER:
         continue
     makes.append(best)
     if label not in old: notes.append(f'{label}: added, {len(rows)} prices')
+    if not rows: makes.pop(); notes.append(f'{label}: every range of this make is in leave-out.txt, so it is not shown')
 
 out = {'generated': datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).isoformat(timespec='minutes'),
        'makes': makes, 'errors': errors}

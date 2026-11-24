@@ -46,6 +46,7 @@ for p in range(1, N + 1):
     if extras_page is None and re.search(r'All types of mounting other than B3', txt): extras_page = p
     if any(k in title.upper() for k in SKIP): continue
     name, eff, kind = section_of(title)
+    if 'IE2+' in name: continue                 # IE2+ range is not used day to day
     heads = []   # (centre col, pole)
     b5cols = []  # columns of "B5 (Flange)" headers
     for line in lines:

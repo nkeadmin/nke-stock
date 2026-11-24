@@ -1,0 +1,29 @@
+# Ranges that are NOT shown in the app's Price list.
+# One phrase per line. Any range whose name contains the phrase is left out, for every make.
+# To bring a range back, delete its line (or put # in front of it), commit, and the prices are rebuilt.
+# The names are as they appear in the price lists. "Brake except Bonfiglioli" hides brake motors for every make but Bonfiglioli.
+
+Brake except Bonfiglioli
+Cooling tower except Hindustan
+Crane
+Crusher
+Duplex cooling
+Dust proof
+Fire fighting
+Flameproof
+Aluminium
+High output
+Higher output
+Next generation
+Smoke
+Treadmill
+Loom
+Textile
+Torque
+UL
+Two speed
+IE2+
+Slip ring
+NEMA
+Special
+Non sparking

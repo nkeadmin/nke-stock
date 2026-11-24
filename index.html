@@ -187,6 +187,17 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 .spec.make{background:var(--ink);color:var(--panel);font-weight:600}
 .pnote{font-size:12px}
 
+/* brand colours: ABB red, Bonfiglioli dark blue, CG Power green, Marathon light blue, Hindustan black, Havells orange */
+.spec.make.mk-abb,.dot.mk-abb{background:#D0202A;color:#fff}
+.spec.make.mk-bonfiglioli,.dot.mk-bonfiglioli{background:#12307A;color:#fff}
+.spec.make.mk-cgpower,.dot.mk-cgpower{background:#1E8A3E;color:#fff}
+.spec.make.mk-marathon,.dot.mk-marathon{background:#5BB8E8;color:#0B2A3A}
+.spec.make.mk-hindustan,.dot.mk-hindustan{background:#000;color:#fff;box-shadow:inset 0 0 0 1px #5a6672}
+.spec.make.mk-havells,.dot.mk-havells{background:#F47B20;color:#1E1206}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.val .dot{box-shadow:0 0 0 2px var(--panel)}
+.val{display:inline-flex;align-items:center;justify-content:center}
+
 </style>
 </head>
 <body>
@@ -417,7 +428,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
   ];
   var LABEL = { hp: 'HP', pole: 'Pole', mtg: 'Mounting', eff: 'Efficiency', special: 'Type', frame: 'Frame', make: 'Make', model: 'Model', ratio: 'Ratio' };
   var state = { mode: 'stock', modeOpen: false, tab: 'motor', q: '', sel: {}, showZero: false, sheet: null, sheetNew: false, godowns: false, loading: false, msg: '' };
-  var pst = { q: '', sel: { mount: 'B3' }, sheet: null };
+  var pst = { q: '', sel: { mount: 'B3', kind: 'Standard' }, sheet: null };   // Standard range is always on at start
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
@@ -562,8 +573,8 @@ if (typeof module !== 'undefined') module.exports = StockCore;
   function rupees(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
   function frameNo(f) { var m = String(f || '').match(/\d+/); return m ? +m[0] : 0; }
   function num0(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
-  var KINDS = { STD: 'Standard', HO: 'Standard', FLP: 'Flameproof / hazardous', BRAKE: 'Brake', 'CRANE BRAKE': 'Brake', CRANE: 'Crane duty', SLIPRING: 'Slip ring', SMOKE: 'Smoke venting', FIRE: 'Fire fighting', SPECIAL: 'Special application' };
-  var KIND_ORDER = ['Standard', 'Flameproof / hazardous', 'Brake', 'Crane duty', 'Slip ring', 'Fire fighting', 'Smoke venting', 'Special application'];
+  var KINDS = { STD: 'Standard', HO: 'Standard', FLP: 'Flameproof / hazardous', BRAKE: 'Brake', 'CRANE BRAKE': 'Brake', CRANE: 'Crane duty', SLIPRING: 'Slip ring', SMOKE: 'Smoke venting', FIRE: 'Fire fighting', SPECIAL: 'Special application', COOLING: 'Cooling tower' };
+  var KIND_ORDER = ['Standard', 'Flameproof / hazardous', 'Brake', 'Crane duty', 'Slip ring', 'Fire fighting', 'Smoke venting', 'Cooling tower', 'Special application'];
   function extraPct(make, frame, mount) {
     if (!mount || mount === 'B3') return 0;
     var steps = (make.mounting_extra || {}).steps || [], n = frameNo(frame);
@@ -576,6 +587,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
     if (!mount || mount === 'B3') return { price: r.price, note: 'B3 list price', mount: 'B3' };
     var own = r['price_' + mount.toLowerCase()];
     if (own) return { price: own, note: mount + ' list price', mount: mount };
+    if (!(mk.mounting_extra || {}).steps) return { price: r.price, note: mount + ' not in this list; B3 price shown', mount: 'B3' };
     var pct = extraPct(mk, r.frame, mount);
     return { price: r.price * (1 + pct / 100), note: mount + (pct ? ': B3 ' + rupees(r.price) + ' + ' + pct + '%' : ': same as B3'), mount: mount };
   }
@@ -585,21 +597,25 @@ if (typeof module !== 'undefined') module.exports = StockCore;
       mk.sections.forEach(function (sec, si) {
         var kind = KINDS[sec.kind] || 'Special application';
         sec.rows.forEach(function (r) {
-          PITEMS.push({ mk: mk, sec: sec, r: r, make: mk.make, type: sec.name, kind: kind, eff: sec.eff || '', pole: String(r.pole), hp: String(r.hp), frame: String(frameNo(r.frame)),
+          PITEMS.push({ mk: mk, sec: sec, r: r, make: mk.make, type: sec.name, series: sec.name, kind: kind, eff: sec.eff || 'No IE class', pole: String(r.pole), hp: String(r.hp), frame: String(frameNo(r.frame)), size: String(r.frame).replace(/^[A-Z]+(?=\d)/, ''), slip: kind === 'Slip ring',
             order: [mi, si, num0(r.pole), num0(r.kw)], korder: KIND_ORDER.indexOf(kind), eorder: num0(String(sec.eff).replace(/\D/g, '')) || 9 });
         });
       });
     });
   }
   buildPriceItems();
-  var PFIL = [{ f: 'hp', label: 'HP', unit: ' HP' }, { f: 'pole', label: 'Pole', unit: ' pole' }, { f: 'frame', label: 'Frame', pre: 'Frame ' },
-    { f: 'make', label: 'Make' }, { f: 'eff', label: 'Efficiency' }, { f: 'kind', label: 'Range' }, { f: 'type', label: 'Type' },
+  var PFIL = [{ f: 'kind', label: 'Range' }, { f: 'hp', label: 'HP', unit: ' HP' }, { f: 'pole', label: 'Pole', unit: ' pole' }, { f: 'frame', label: 'Frame', pre: 'Frame ' },
+    { f: 'size', label: 'Frame', pre: 'Frame ', slip: true }, { f: 'make', label: 'Make' }, { f: 'eff', label: 'Efficiency' },
     { f: 'mount', label: 'Mounting', fixed: ['B3', 'B5', 'B14', 'B35'] }];
+  function makeCls(m) { return 'mk-' + String(m).toLowerCase().replace(/[^a-z]/g, ''); }   // brand colour
   function pDef(f) { return PFIL.filter(function (x) { return x.f === f; })[0]; }
   function pLabel(f, v) { var d = pDef(f); return (d.pre || '') + v + (d.unit || ''); }
+  function slipMode() { return pst.sel.kind === 'Slip ring'; }
+  function pActive(x) { return slipMode() ? !(x.f === 'hp' || x.f === 'frame' || x.f === 'eff') : !x.slip; }
   function pMatch(it, ignore) {
+    if (it.kind !== 'Standard' && !pst.sel.kind && ignore !== 'kind') return false;   // brake, slip ring etc. only when that Range is picked   // slip ring motors are chosen by pole and frame, in their own range
     for (var i = 0; i < PFIL.length; i++) {
-      var f = PFIL[i].f; if (PFIL[i].fixed || f === ignore || !pst.sel[f]) continue;
+      var f = PFIL[i].f; if (PFIL[i].fixed || !pActive(PFIL[i]) || f === ignore || !pst.sel[f]) continue;
       if (String(it[f]) !== pst.sel[f]) return false;
     }
     if (pst.q) {
@@ -626,28 +642,35 @@ if (typeof module !== 'undefined') module.exports = StockCore;
     PITEMS.forEach(function (it) { var v = String(it[f]); if (v && pMatch(it, f) && !seen[v]) { seen[v] = 1; out.push(v); } });
     if (pst.sel[f] && !seen[pst.sel[f]]) out.push(pst.sel[f]);
     if (f === 'pole' || f === 'hp' || f === 'frame') out.sort(function (a, b) { return num0(a) - num0(b); });
+    else if (f === 'size') out.sort(function (a, b) { return num0(a) - num0(b) || (a < b ? -1 : a > b ? 1 : 0); });
     else if (f === 'kind') out.sort(function (a, b) { return KIND_ORDER.indexOf(a) - KIND_ORDER.indexOf(b); });
     else out.sort();
     return out;
   }
   function priceCard(it) {
     var r = it.r, pf = priceFor(it, pst.sel.mount);
-    var specs = [r.kw + ' kW', 'Frame ' + r.frame];
+    var specs = it.slip ? [r.kw + ' kW', r.hp + ' HP', r.frame] : [r.kw + ' kW', 'Frame ' + r.frame];
     if (r.s1hp != null) specs.push('S1 ' + r.s1hp + ' HP');
     if (r.torque != null) specs.push('Brake ' + r.torque + ' Nm');
     if (r.brake) specs.push('Brake ' + r.brake);
     var page = it.mk.pdf && /\.pdf$/i.test(it.mk.pdf) ? ' · <a href="' + esc(it.mk.pdf) + '#page=' + r.page + '" target="_blank" rel="noopener">page ' + r.page + '</a>' : '';
     return '<li class="item pitem">' +
-      '<div class="ihead"><div class="ileft"><div class="iname"><span class="big">' + esc(r.hp) + ' HP</span><span class="mid">' + esc(r.pole) + ' pole</span></div>' +
-      '<div class="specs"><span class="spec make">' + esc(it.make) + '</span><span class="spec type">' + esc(it.type) + '</span>' + specs.map(function (x) { return '<span class="spec">' + esc(x) + '</span>'; }).join('') + '</div></div>' +
+      '<div class="ihead"><div class="ileft"><div class="iname">' + (it.slip ? '<span class="big">Frame ' + esc(it.size) + '</span><span class="mid">' + esc(r.pole) + ' pole</span>' : '<span class="big">' + esc(r.hp) + ' HP</span><span class="mid">' + esc(r.pole) + ' pole</span>') + '</div>' +
+      '<div class="specs"><span class="spec make ' + makeCls(it.make) + '">' + esc(it.make) + '</span><span class="spec type">' + esc(it.eff) + '</span>' + specs.map(function (x) { return '<span class="spec">' + esc(x) + '</span>'; }).join('') + '</div></div>' +
       '<div class="iqty price">' + rupees(pf.price) + '<small>' + esc(pf.note) + '</small></div></div>' +
-      '<div class="brands">' + esc(it.mk.list) + (r.cat ? ' · Cat. ' + esc(r.cat) : '') + page + '</div>' +
+      '<div class="brands">' + (it.series !== it.eff ? esc(it.series) + ' · ' : '') + esc(it.mk.list) + (r.cat ? ' · Cat. ' + esc(r.cat) : '') + page + '</div>' +
       (r.note ? '<div class="brands pnote">' + esc(r.note) + '</div>' : '') + '</li>';
   }
   function renderPrice() {
     var shown = PITEMS.filter(function (it) { return pMatch(it); });
     var compare = !pst.sel.make;
     shown.sort(function (a, b) {
+      if (slipMode()) {
+        if (num0(a.pole) !== num0(b.pole)) return num0(a.pole) - num0(b.pole);
+        if (num0(a.size) !== num0(b.size)) return num0(a.size) - num0(b.size);
+        if (num0(a.r.kw) !== num0(b.r.kw)) return num0(a.r.kw) - num0(b.r.kw);
+        return a.r.price - b.r.price;
+      }
       if (compare) {
         if (a.korder !== b.korder) return a.korder - b.korder;
         if (num0(a.pole) !== num0(b.pole)) return num0(a.pole) - num0(b.pole);
@@ -663,16 +686,18 @@ if (typeof module !== 'undefined') module.exports = StockCore;
     var h = '<header class="bar pad">' + modeSwitch() + '<button type="button" class="status ' + (PRICE_SRC === 'live' ? 'live' : PRICE_SRC === 'saved' ? 'cache' : '') + (pLoading ? ' loading' : '') + '" id="plist-btn" aria-label="About these price lists"><i></i>' + esc(chip) + '</button></header>';
     h += '<div class="dock pad"><div class="search">' + ICON.search + '<input id="pq" type="search" inputmode="search" enterkeyhint="search" placeholder="Search, e.g. 5 hp 4 pole" value="' + esc(pst.q) + '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search prices">' +
       (pst.q ? '<button type="button" class="clear" id="pclear-q" aria-label="Clear search">' + ICON.x + '</button>' : '') + '</div>' +
-      '<div class="filters" role="toolbar" aria-label="Filters">' + PFIL.map(function (x) {
+      '<div class="filters" role="toolbar" aria-label="Filters">' + (slipMode() ? PFIL.filter(pActive).sort(function (a, b) { return (a.f === 'kind' ? -1 : 0) - (b.f === 'kind' ? -1 : 0); }) : PFIL.filter(pActive)).filter(function (x) {
+        return true;
+      }).map(function (x) {
         var v = pst.sel[x.f], on = v && !(x.f === 'mount' && v === 'B3');
-        var txt = !v ? x.label : (x.f === 'hp' || x.f === 'pole' || x.f === 'frame') ? pLabel(x.f, v) : x.f === 'mount' || x.f === 'eff' ? (x.f === 'mount' ? 'Mounting: ' + v : v) : v;
+        var txt = !v ? x.label : (x.f === 'hp' || x.f === 'pole' || x.f === 'frame' || x.f === 'size') ? pLabel(x.f, v) : x.f === 'mount' || x.f === 'eff' ? (x.f === 'mount' ? 'Mounting: ' + v : v) : v;
         return '<button type="button" class="fbtn' + (on ? ' on' : '') + '" data-popen="' + x.f + '">' + esc(txt) + ICON.down + '</button>';
-      }).join('') + (pst.q || PFIL.some(function (x) { return x.f !== 'mount' && pst.sel[x.f]; }) || pst.sel.mount !== 'B3' ? '<button type="button" class="fbtn reset" id="preset">Clear all</button>' : '') + '</div></div>';
+      }).join('') + (pst.q || PFIL.some(function (x) { return x.f !== 'mount' && x.f !== 'kind' && pst.sel[x.f]; }) || pst.sel.kind !== 'Standard' || pst.sel.mount !== 'B3' ? '<button type="button" class="fbtn reset" id="preset">Clear all</button>' : '') + '</div></div>';
     if (PRICE_ERR && !PRICES) h += '<div class="pad"><p class="msg" role="alert">' + esc(PRICE_ERR) + '</p></div>';
     if (!PRICES || !PRICES.length) {
       h += '<div class="empty"><h2>' + (pLoading ? 'Loading price lists…' : 'No price lists yet') + '</h2><p>' + (pLoading ? '' : 'Price lists appear here once they are added to the website.') + '</p></div>';
     } else if (!shown.length) {
-      h += '<div class="empty"><h2>No price found</h2><p>No motor in the price lists matches. Check the HP and pole, or clear a filter.</p><button type="button" class="btn" id="preset2">Clear filters</button></div>';
+      h += '<div class="empty"><h2>No price found</h2><p>' + (slipMode() ? 'No slip ring motor matches. Check the pole and frame, or clear a filter.' : 'No motor in the price lists matches. Check the HP and pole, or clear a filter. Slip ring motors are under Range: Slip ring.') + '</p><button type="button" class="btn" id="preset2">Clear filters</button></div>';
     } else {
       var nm = {}; shown.forEach(function (it) { nm[it.make] = 1; });
       h += '<div class="result pad"><div class="count"><b>' + fmt(shown.length) + '</b> ' + (shown.length === 1 ? 'price' : 'prices') + (compare && Object.keys(nm).length > 1 ? ' from ' + Object.keys(nm).length + ' makes' : '') + '</div></div>';
@@ -702,18 +727,18 @@ if (typeof module !== 'undefined') module.exports = StockCore;
         '<div class="btns"><button type="button" class="btn primary" id="prefresh"' + (pLoading ? ' disabled' : '') + '>' + (pLoading ? 'Downloading…' : 'Download latest price lists') + '</button></div></div>';
     } else {
       var f = pst.sheet, d = pDef(f), vals = pValues(f), cur = pst.sel[f] || '';
-      var wide = vals.some(function (v) { return v.length > 7; }), numg = f === 'hp' || f === 'pole' || f === 'frame';
+      var wide = vals.some(function (v) { return v.length > 7; }), numg = f === 'hp' || f === 'pole' || f === 'frame' || f === 'size';
       h += '<div class="shead"><h2 id="sheet-title">' + d.label + '</h2><button type="button" class="iconbtn" id="pclose" aria-label="Close">' + ICON.x + '</button></div>' +
         '<div class="sbody"><div class="vals' + (wide ? ' wide' : numg ? ' num' : '') + '">' + vals.map(function (v) {
-          return '<button type="button" class="val' + (cur === v ? ' on' : '') + '" data-pv="' + esc(v) + '" aria-pressed="' + (cur === v) + '">' + esc(numg && f !== 'frame' ? pLabel(f, v) : v) + '</button>';
+          return '<button type="button" class="val' + (cur === v ? ' on' : '') + '" data-pv="' + esc(v) + '" aria-pressed="' + (cur === v) + '">' + (f === 'make' ? '<i class="dot ' + makeCls(v) + '"></i>' : '') + esc(numg && f !== 'frame' && f !== 'size' ? pLabel(f, v) : v) + '</button>';
         }).join('') + '</div></div>' +
-        (f === 'mount' ? '' : '<div class="sfoot"><button type="button" class="btn" id="psheet-clear"' + (cur ? '' : ' disabled') + '>Any ' + (f === 'hp' ? 'HP' : d.label.toLowerCase()) + '</button></div>');
+        (f === 'mount' || f === 'kind' ? '' : '<div class="sfoot"><button type="button" class="btn" id="psheet-clear"' + (cur ? '' : ' disabled') + '>Any ' + (f === 'hp' ? 'HP' : d.label.toLowerCase()) + '</button></div>');
     }
     return h + '</section>';
   }
   function pOpen(s) { pst.sheet = s; pst.sheetNew = true; render(); var b = $('.sheet .val.on') || $('.sheet button'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} }
   function pClose() { var f = pst.sheet; pst.sheet = null; render(); var b = f && f !== 'about' ? $('.fbtn[data-popen="' + f + '"]') : $('#plist-btn'); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} }
-  function pReset() { pst.q = ''; pst.sel = { mount: 'B3' }; render(); }
+  function pReset() { pst.q = ''; pst.sel = { mount: 'B3', kind: 'Standard' }; render(); }
   function loadPrices(manual) {
     var url = CFG.PRICES_URL || 'prices.json';
     if (location.protocol === 'file:' && !manual) return;
@@ -737,11 +762,12 @@ if (typeof module !== 'undefined') module.exports = StockCore;
     on('plist-btn', function () { pOpen('about'); });
     on('prefresh', function () { loadPrices(true); });
     on('pscrim', pClose); on('pclose', pClose);
-    on('psheet-clear', function () { delete pst.sel[pst.sheet]; pClose(); });
+    on('psheet-clear', function () { var f = pst.sheet; delete pst.sel[f]; if (f === 'kind') delete pst.sel.size; pClose(); });
     app.querySelectorAll('.sheet .val[data-pv]').forEach(function (b) { b.onclick = function () {
       var f = pst.sheet, v = b.dataset.pv;
-      if (pst.sel[f] === v && f !== 'mount') delete pst.sel[f]; else pst.sel[f] = v;
+      if (pst.sel[f] === v && f !== 'mount' && f !== 'kind') delete pst.sel[f]; else pst.sel[f] = v;
       if (f === 'make') delete pst.sel.type;
+      if (f === 'kind') { delete pst.sel.type; if (slipMode()) { delete pst.sel.hp; delete pst.sel.frame; delete pst.sel.eff; } else delete pst.sel.size; }
       pClose();
     }; });
   }
