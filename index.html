@@ -198,6 +198,15 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 .val .dot{box-shadow:0 0 0 2px var(--panel)}
 .val{display:inline-flex;align-items:center;justify-content:center}
 
+/* colour band down the left edge of each price, in the make's colour */
+.list.plist .pitem{position:relative;padding-left:22px}
+.list.plist .pitem::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;background:var(--mk,var(--line))}
+.pitem.mk-abb{--mk:#D0202A}.pitem.mk-bonfiglioli{--mk:#12307A}.pitem.mk-cgpower{--mk:#1E8A3E}
+.pitem.mk-marathon{--mk:#5BB8E8}.pitem.mk-hindustan{--mk:#000}.pitem.mk-havells{--mk:#F47B20}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .pitem.mk-hindustan{--mk:#8A96A3} :root:not([data-theme="light"]) .pitem.mk-bonfiglioli{--mk:#3D63C9} }
+:root[data-theme="dark"] .pitem.mk-hindustan{--mk:#8A96A3}:root[data-theme="dark"] .pitem.mk-bonfiglioli{--mk:#3D63C9}
+@media (min-width:600px){ .list.plist .pitem:first-child::before{border-top-left-radius:11px} .list.plist .pitem:last-child::before{border-bottom-left-radius:11px} }
+
 </style>
 </head>
 <body>
@@ -654,7 +663,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
     if (r.torque != null) specs.push('Brake ' + r.torque + ' Nm');
     if (r.brake) specs.push('Brake ' + r.brake);
     var page = it.mk.pdf && /\.pdf$/i.test(it.mk.pdf) ? ' · <a href="' + esc(it.mk.pdf) + '#page=' + r.page + '" target="_blank" rel="noopener">page ' + r.page + '</a>' : '';
-    return '<li class="item pitem">' +
+    return '<li class="item pitem ' + makeCls(it.make) + '">' +
       '<div class="ihead"><div class="ileft"><div class="iname">' + (it.slip ? '<span class="big">Frame ' + esc(it.size) + '</span><span class="mid">' + esc(r.pole) + ' pole</span>' : '<span class="big">' + esc(r.hp) + ' HP</span><span class="mid">' + esc(r.pole) + ' pole</span>') + '</div>' +
       '<div class="specs"><span class="spec make ' + makeCls(it.make) + '">' + esc(it.make) + '</span><span class="spec type">' + esc(it.eff) + '</span>' + specs.map(function (x) { return '<span class="spec">' + esc(x) + '</span>'; }).join('') + '</div></div>' +
       '<div class="iqty price">' + rupees(pf.price) + '<small>' + esc(pf.note) + '</small></div></div>' +
@@ -701,7 +710,7 @@ if (typeof module !== 'undefined') module.exports = StockCore;
     } else {
       var nm = {}; shown.forEach(function (it) { nm[it.make] = 1; });
       h += '<div class="result pad"><div class="count"><b>' + fmt(shown.length) + '</b> ' + (shown.length === 1 ? 'price' : 'prices') + (compare && Object.keys(nm).length > 1 ? ' from ' + Object.keys(nm).length + ' makes' : '') + '</div></div>';
-      h += '<ul class="list">' + shown.slice(0, 200).map(priceCard).join('') + '</ul>' +
+      h += '<ul class="list plist">' + shown.slice(0, 200).map(priceCard).join('') + '</ul>' +
         (shown.length > 200 ? '<p class="more">Showing 200 of ' + fmt(shown.length) + '. Pick HP and pole to narrow down.</p>' : '');
       h += '<div class="pnotes pad">' + makes.filter(function (mk) { return nm[mk.make]; }).map(function (mk) {
         return '<p><b>' + esc(mk.make) + ' ' + esc(mk.list) + '</b>' + (mk.date ? ', from ' + esc(fmtDate(mk.date, true)) : '') + '. List prices; ' + esc(mk.tax) + '. Other mountings: ' + esc(mk.mounting_extra.text.replace(/^[^:]*:\s*/, '')) + '.' +
