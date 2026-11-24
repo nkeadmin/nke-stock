@@ -11,6 +11,8 @@ FILES
   xlsx.full.min.js    spreadsheet reader (SheetJS, open source)
   manifest.webmanifest, sw.js, icon-192.png, icon-512.png   make it installable on phones
   update-stock.yml.txt   the automatic Zoho copy job (step 2)
+  update-prices.yml.txt  the price list job (step 2B)
+  pricelists/         the makes' price list files;  tools/  the programs that read them;  prices.json  the prices the app shows
   stock.dat           created by that job; the live stock
 
 STEP 1 - PUT IT ONLINE (free)
@@ -38,6 +40,24 @@ STEP 2 - CONNECT ZOHO SHEET (stock updates by itself)
   Your staff then see the new stock the morning's stock after 9 AM (or right away after a manual Run workflow). Nobody uploads anything.
   If a run shows a red cross, open it: the message says what is wrong (link, download not allowed, wrong tab).
   To test a link on one phone: open the app, tap the gear icon, paste it, Save.
+
+STEP 2B - PRICE LISTS (Price list in the app)
+  The app shows the motor price lists that are in the folder "pricelists" on the website.
+  First time:
+     1. Upload the folders "pricelists" and "tools" and the file "prices.json" (drag them onto Add file > Upload files).
+     2. Add file > Create new file, name it exactly  .github/workflows/update-prices.yml
+        and paste everything from update-prices.yml.txt. Commit changes.
+  When a make sends a new price list:
+     1. Open the folder pricelists on GitHub, Add file > Upload files, drop the new PDF (or Bonfiglioli Excel), Commit.
+     2. Delete the old file of that make from the folder (open it, click the bin icon, Commit).
+     3. Wait 2-3 minutes. Actions shows "Update prices from price lists". A green tick means the app now has the new prices.
+  The job knows the make from what is printed in the file, so the file name does not matter.
+  Before it replaces a make's prices it checks the new list: enough prices found, kW and HP fit together,
+  and prices did not jump by more than 50% on average. If a check fails you get a red cross with the reason,
+  and that make keeps its old prices. If you have checked the new list and it is right, run the job by hand
+  (Actions > Update prices from price lists > Run workflow) with "Accept new lists" ticked.
+  Makes read today: ABB (FRSM), CG Power (LTM), Havells (HM), Hindustan (Price list No.), Marathon (LVMP), Bonfiglioli branded motors (Excel).
+  A brand new make, or a make that changes the layout of its list, needs its reader in tools/readers adjusted.
 
 STEP 3 - GIVE THE LINK TO YOUR STAFF
   Android (Chrome): open the link, tap the three dots, "Add to Home screen" or "Install app".
